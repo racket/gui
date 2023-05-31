@@ -2429,7 +2429,11 @@
                [root (make-object % s-root)])
           (set! super-root s-root)
           root)))
-    
+
+    (define/override (on-activate on?)
+      (when on?
+        (try-to-update-canvas-in-case-font-size-changed)))
+
     (define text-to-search #f)
     (define/public-final (get-text-to-search) text-to-search)
 
@@ -2500,12 +2504,15 @@
         (when focus?
           (send find-edit set-position 0 (send find-edit last-position))
           (send (send find-edit get-canvas) focus))
-        (let ([c (send find-edit get-canvas)])
-          (when (and c (send c get-line-count))
-            ;; try to update the canvas so that the font size is correctly accounted for
-            (send c set-editor (send c get-editor))))
+        (try-to-update-canvas-in-case-font-size-changed)
         (send find-edit end-edit-sequence)))
-    
+
+    (define/private (try-to-update-canvas-in-case-font-size-changed)
+      (when find-edit
+        (define c (send find-edit get-canvas))
+        (when (and c (send c get-line-count))
+          (send c set-editor (send c get-editor)))))
+
     (define/public (unhide-search-and-toggle-focus #:new-search-string-from-selection? [new-search-string-from-selection? #f])
       (if hidden?
         (unhide-search #t #:new-search-string-from-selection? new-search-string-from-selection?)
