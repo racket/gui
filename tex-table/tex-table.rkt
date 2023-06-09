@@ -157,6 +157,8 @@
     ("simeq" "≃")
     ("ll" "≪")
     ("gg" "≫")
+    ("guillemetleft" "«")
+    ("guillemetright" "»")
     ("asymp" "≍")
     ("parallel" "∥")
     ("subset" "⊂")
