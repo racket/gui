@@ -363,8 +363,8 @@
            (if (and l t mw mh)
                (values (- delta-x l) 
                        (- delta-y t)
-                       (and (<= 0 l mw)
-                            (<= 0 t mh)))
+                       (and (<= l mw)
+                            (<= t mh)))
                (values #f #f #f))]
           [else
            (values #f #f #f)]))
