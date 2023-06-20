@@ -232,11 +232,11 @@
     height. The preferences key is the one passed
     to the initialization argument of the class.
   }
-  @defmethod[#:mode override (on-move (width position-integer?)
-                                      (height position-integer?))
+  @defmethod[#:mode override (on-move (x position-integer?)
+                                      (y position-integer?))
                     void?]{
-    Updates the preferences according to the width and
-    height, if @racket[position-preferences-key] is not @racket[#f], using
+    Updates the preferences according to the x,y position,
+    if @racket[position-preferences-key] is not @racket[#f], using
     it as the preferences key.
   }
 }
