@@ -445,12 +445,7 @@ added get-regions
       (define style-name (token-sym->style color-type))
       (define base-color (send (get-style-list) find-named-style style-name))
       (define color (if (and (hash? attribs) (hash-ref attribs 'comment? #f))
-                        (let ([d (new style-delta%)]
-                              [base-color (or base-color (send (get-style-list) find-named-style "Standard"))])
-                          ;; 50% transparency:
-                          (send (send d get-foreground-mult) set-a 0.5)
-                          (and base-color
-                               (send (get-style-list) find-or-create-style base-color d)))
+                        (color-style->comment-style base-color)
                         base-color))
       (cond
         [(do-spell-check? (attribs->type attribs))
@@ -470,6 +465,14 @@ added get-regions
             (add-coloring color sp ep)])]
         [else
          (add-coloring color sp ep)]))
+
+    (define/private (color-style->comment-style base-color)
+      (let ([d (new style-delta%)]
+            [base-color (or base-color (send (get-style-list) find-named-style "Standard"))])
+        ;; 50% transparency:
+        (send (send d get-foreground-mult) set-a 0.5)
+        (and base-color
+             (send (get-style-list) find-or-create-style base-color d))))
 
     (define/private (do-spell-check? type)
       (or (and (equal? type 'string) spell-check-strings?)
@@ -750,13 +753,18 @@ added get-regions
                            [start-pos (lexer-state-start-pos ls)])
                        (send tokens for-each
                              (λ (start len data)
-                               (let ([color-type (data-color-type data)])
+                               (let ([color-type (data-color-type data)]
+                                     [comment? (let ([attribs (data-attribs data)])
+                                                 (and (hash? attribs) (hash-ref attribs 'comment? #f)))])
                                  (when (should-color-type? color-type)
-                                   (let ((color (send (get-style-list) find-named-style
-                                                      (token-sym->style color-type)))
+                                   (let ((base-color (send (get-style-list) find-named-style
+                                                           (token-sym->style color-type)))
                                          (sp (+ start-pos start))
                                          (ep (+ start-pos (+ start len))))
-                                     (change-style color sp ep #f))))))))
+                                     (let ([color (if comment?
+                                                      (color-style->comment-style base-color)
+                                                      base-color)])
+                                       (change-style color sp ep #f)))))))))
                    lexer-states))
                 (end-edit-sequence))))))))
     
