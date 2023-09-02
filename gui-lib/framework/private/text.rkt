@@ -10,6 +10,7 @@
          "text-delegate.rkt"
          "text-first-line.rkt"
          "text-line-numbers.rkt"
+         "text-indent-guides.rkt"
          "text-misc.rkt"
          "text-normalize-paste.rkt"
          "text-port.rkt"
@@ -43,6 +44,7 @@
           text-first-line^
           text-inline-overview^
           text-line-numbers^
+          text-indent-guides^
           text-misc^
           text-normalize-paste^
           text-port^
@@ -56,6 +58,7 @@
         text-first-line@
         text-inline-overview@
         text-line-numbers@
+        text-indent-guides@
         text-misc@
         text-normalize-paste@
         text-port@
@@ -85,6 +88,7 @@
     text-first-line^
     text-inline-overview^
     text-line-numbers^
+    text-indent-guides^
     text-misc^
     text-normalize-paste^
     text-port^

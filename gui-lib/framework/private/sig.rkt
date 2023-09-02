@@ -184,6 +184,7 @@
    (open text-search^)
    (open text-first-line^)
    (open text-inline-overview^)
+   (open text-indent-guides^)
    (open text-mixed-in-classes^)))
 
 (define-signature text^ extends text-class^

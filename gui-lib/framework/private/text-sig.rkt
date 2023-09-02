@@ -19,7 +19,8 @@
          text-search^
          text-first-line^
          text-inline-overview^
-         text-mixed-in-classes^)
+         text-mixed-in-classes^
+         text-indent-guides^)
 
 (define-signature text-basic-class^
   (basic<%>
@@ -39,6 +40,10 @@
 (define-signature text-line-numbers^
   (line-numbers<%>
    line-numbers-mixin))
+
+(define-signature text-indent-guides^
+  (indent-guides<%>
+   indent-guides-mixin))
 
 (define-signature text-autocomplete-class^
   (autocomplete<%>

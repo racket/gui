@@ -285,6 +285,26 @@
   }
 }
 
+@definterface[text:indent-guides<%> (text%)]{
+ Classes implementing this interface provide indent guides
+ as thin vertical lines, showing which columns where earlier
+ lines started.
+
+ @history[#:added "1.69"]
+
+ @defmethod[#:mode public-final (show-indent-guides! [on? any/c]) void?]{
+  Enables or disables indent guides in this editor. Defaults to enabled.
+ }
+
+ @defmethod[#:mode public-final (show-indent-guides?) boolean?]{
+  Returns a boolean indicating if indent guides are shown in the current editor.
+ }
+}
+
+@defmixin[text:indent-guides-mixin (text%) (text:indent-guides<%>)]{
+
+}
+
 @definterface[text:inline-overview<%> (text%)]{
  Classes implementing this interface provide an overview
  along the right-hand side of the @racket[text%]'s view, showing

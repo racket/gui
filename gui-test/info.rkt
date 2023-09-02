@@ -6,6 +6,7 @@
 (define build-deps '("racket-index"
                      "scheme-lib"
                      "draw-lib"
+                     "data-lib"
                      "racket-test"
                      "sgl"
                      "snip-lib"
