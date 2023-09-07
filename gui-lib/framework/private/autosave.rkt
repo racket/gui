@@ -337,7 +337,12 @@
                         [parent vp]))
       (define ec (make-object canvas:color% vp t))
       (send ec min-height 400)
-      (send t load-file filename)
+      (with-handlers ([exn:fail? (λ (exn)
+                                   (send t insert "Error loading original file:\n\n")
+                                   (define p (send t last-position))
+                                   (send t insert (exn-message exn))
+                                   (send t set-position 0))])
+        (send t load-file filename))
       (send t hide-caret #t)
       (send t lock #t))
 
