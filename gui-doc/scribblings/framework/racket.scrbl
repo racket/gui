@@ -152,17 +152,27 @@
     of the selection is used.
   }
 
-  @defmethod*[(((comment-out-selection (start exact-integer?)
-                                       (end exact-integer?))
-                void?))]{
-    Comments the lines containing positions @racket[start] through @racket[end]
-    by inserting a semi-colon at the front of each line.
-  }
+ @defmethod[(comment-out-selection [start exact-integer? (get-start-position)]
+                                   [end exact-integer? (get-end-position)]
+                                   [#:start-comment start-comment string? ";"]
+                                   [#:padding padding string? ""])
+            void?]{
+  Comments the lines containing positions @racket[start] through @racket[end]
+  by inserting a @racket[start-comment] followed by @racket[padding] at the
+  start of each paragraph.
+ }
 
-  @defmethod*[(((uncomment-selection (start exact-integer?) (end exact-integer?)) void?))]{
-    Uncomments the lines containing positions @racket[start] through
-    @racket[end].
-  }
+  @defmethod[(uncomment-selection [start exact-integer? (get-start-position)]
+                                  [end exact-integer? (get-end-position)]
+                                  [#:start-comment start-comment string ";"]) void?]{
+  Uncomments the paragraphs containing positions
+  @racket[start] through @racket[end].
+
+  Specifically, removes each occurrence of
+  @racket[start-comment] that appears (potentially following
+  whitespace) at the start of each paragraph that enclose the
+  range between @racket[start] and @racket[end].
+ }
 
   @defmethod*[(((get-forward-sexp (start exact-integer?))
                 (or/c #f exact-integer?)))]{

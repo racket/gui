@@ -703,22 +703,25 @@
             last-para)))
 
     (define/public (comment-out-selection [start-pos (get-start-position)]
-                                          [end-pos (get-end-position)])
+                                          [end-pos (get-end-position)]
+                                          #:start-comment [start-comment ";"]
+                                          #:padding [padding ""])
       (begin-edit-sequence)
-      (let ([first-pos-is-first-para-pos?
-             (= (paragraph-start-position (position-paragraph start-pos))
-                start-pos)])
-        (let* ([first-para (position-paragraph start-pos)]
-               [last-para (calc-last-para end-pos)])
-          (let para-loop ([curr-para first-para])
-            (when (<= curr-para last-para)
-              (let ([first-on-para (paragraph-start-position curr-para)])
-                (insert #\; first-on-para)
-                (para-loop (add1 curr-para))))))
-        (when first-pos-is-first-para-pos?
-          (set-position
-           (paragraph-start-position (position-paragraph (get-start-position)))
-           (get-end-position))))
+      (define first-pos-is-first-para-pos?
+        (= (paragraph-start-position (position-paragraph start-pos))
+           start-pos))
+      (define first-para (position-paragraph start-pos))
+      (define last-para (calc-last-para end-pos))
+      (let para-loop ([curr-para first-para])
+        (when (<= curr-para last-para)
+          (define first-on-para (paragraph-start-position curr-para))
+          (insert padding first-on-para)
+          (insert start-comment first-on-para)
+          (para-loop (add1 curr-para))))
+      (when first-pos-is-first-para-pos?
+        (set-position
+         (paragraph-start-position (position-paragraph (get-start-position)))
+         (get-end-position)))
       (end-edit-sequence)
       #t)
 
@@ -769,41 +772,59 @@
       #t)
 
     (define/public (uncomment-selection [start-pos (get-start-position)]
-                                        [end-pos (get-end-position)])
-      (let ([snip-before (find-snip start-pos 'before-or-none)]
-            [snip-after (find-snip start-pos 'after-or-none)])
-
-        (begin-edit-sequence)
-        (cond
-          [(and (= start-pos end-pos)
-                snip-before
-                (is-a? snip-before comment-box:snip%))
-           (extract-contents start-pos snip-before)]
-          [(and (= start-pos end-pos)
-                snip-after
-                (is-a? snip-after comment-box:snip%))
-           (extract-contents start-pos snip-after)]
-          [(and (= (+ start-pos 1) end-pos)
-                snip-after
-                (is-a? snip-after comment-box:snip%))
-           (extract-contents start-pos snip-after)]
-          [else
-           (let* ([last-pos (last-position)]
-                  [first-para (position-paragraph start-pos)]
-                  [last-para (calc-last-para end-pos)])
-             (let para-loop ([curr-para first-para])
-               (when (<= curr-para last-para)
-                 (let ([first-on-para
-                        (skip-whitespace  (paragraph-start-position curr-para)
-                                          'forward
-                                          #f)])
-                   (split-snip first-on-para)
-                   (when (and (< first-on-para last-pos)
-                              (char=? #\; (get-character first-on-para))
-                              (is-a? (find-snip first-on-para 'after-or-none) string-snip%))
-                     (delete first-on-para (+ first-on-para 1)))
-                   (para-loop (add1 curr-para))))))])
-        (end-edit-sequence))
+                                        [end-pos (get-end-position)]
+                                        #:start-comment [start-comment ";"])
+      (define snip-before (find-snip start-pos 'before-or-none))
+      (define snip-after (find-snip start-pos 'after-or-none))
+      (begin-edit-sequence)
+      (cond
+        [(and (= start-pos end-pos)
+              snip-before
+              (is-a? snip-before comment-box:snip%))
+         (extract-contents start-pos snip-before)]
+        [(and (= start-pos end-pos)
+              snip-after
+              (is-a? snip-after comment-box:snip%))
+         (extract-contents start-pos snip-after)]
+        [(and (= (+ start-pos 1) end-pos)
+              snip-after
+              (is-a? snip-after comment-box:snip%))
+         (extract-contents start-pos snip-after)]
+        [else
+         (define last-pos (last-position))
+         (define first-para (position-paragraph start-pos))
+         (define last-para (calc-last-para end-pos))
+         (let para-loop ([curr-para first-para])
+           (when (<= curr-para last-para)
+             (define first-on-para
+               (skip-whitespace (paragraph-start-position curr-para)
+                                'forward
+                                #f))
+             (define last-on-para (paragraph-end-position curr-para))
+             (define end-of-potential-comment
+               (min last-on-para (+ first-on-para (string-length start-comment))))
+             (split-snip first-on-para)
+             (split-snip end-of-potential-comment)
+             (define all-string-snips?
+               (let loop ([snip (find-snip first-on-para 'after-or-none)])
+                 (cond
+                   [snip
+                    (define snip-pos (get-snip-position snip))
+                    (cond
+                      [(= snip-pos end-of-potential-comment) #t]
+                      [(< snip-pos end-of-potential-comment)
+                       (and (is-a? snip string-snip%)
+                            (loop (send snip next)))]
+                      [else
+                       (error 'racket.rkt::internal-error
+                              "went too far, but did a split-snip first")])]
+                   [else #t])))
+             (when (and all-string-snips?
+                        (equal? (get-text first-on-para end-of-potential-comment)
+                                start-comment))
+               (delete first-on-para (+ first-on-para (string-length start-comment))))
+             (para-loop (add1 curr-para))))])
+      (end-edit-sequence)
       #t)
 
     ;; extract-contents : number (is-a?/c comment-box:snip%) -> void
