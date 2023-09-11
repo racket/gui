@@ -375,9 +375,18 @@
     tabify-selection
     tabify-all
     insert-return
-    box-comment-out-selection
+
     comment-out-selection
+    box-comment-out-selection
+    region-comment-out-selection
+    uncomment-box/selection
     uncomment-selection
+    uncomment-selection/region
+    uncomment-selection/line
+    uncomment-selection/box
+    commented-out/line?
+    commented-out/region?
+
     get-forward-sexp
     remove-sexp
     forward-sexp
@@ -702,9 +711,27 @@
                          last-para)))
             last-para)))
 
+    (define/public (region-comment-out-selection [start-pos (get-start-position)]
+                                                 [end-pos (get-end-position)]
+                                                 #:start [start "#|"]
+                                                 #:end [end "|#"]
+                                                 #:continue [continue ""]
+                                                 #:padding [padding "  "])
+      (begin-edit-sequence)
+      (define start-para (position-paragraph start-pos))
+      (define end-para (position-paragraph end-pos))
+      (insert end end-pos)
+      (insert start start-pos)
+      (for ([i (in-range (+ start-para 1) end-para)])
+        (define para-start (paragraph-start-position i))
+        (insert padding para-start)
+        (insert continue para-start))
+      (end-edit-sequence)
+      #t)
+
     (define/public (comment-out-selection [start-pos (get-start-position)]
                                           [end-pos (get-end-position)]
-                                          #:start-comment [start-comment ";"]
+                                          #:start [start-comment ";"]
                                           #:padding [padding ""])
       (begin-edit-sequence)
       (define first-pos-is-first-para-pos?
@@ -727,105 +754,221 @@
 
     (define/public (box-comment-out-selection [_start-pos 'start]
                                               [_end-pos 'end])
-      (let ([start-pos (if (eq? _start-pos 'start)
-                           (get-start-position)
-                           _start-pos)]
-            [end-pos (if (eq? _end-pos 'end)
-                         (get-end-position)
-                         _end-pos)])
-        (begin-edit-sequence)
-        (split-snip start-pos)
-        (split-snip end-pos)
-        (let* ([cb (instantiate comment-box:snip% ())]
-               [text (send cb get-editor)])
-          (let loop ([snip (find-snip start-pos 'after-or-none)])
-            (cond
-              [(not snip) (void)]
-              [((get-snip-position snip) . >= . end-pos) (void)]
-              [else
-               (send text insert (send snip copy)
-                     (send text last-position)
-                     (send text last-position))
-               (loop (send snip next))]))
-          (delete start-pos end-pos)
-          (insert cb start-pos)
-          (set-position start-pos start-pos))
-        (end-edit-sequence)
-        #t))
+      (define start-pos (if (eq? _start-pos 'start)
+                            (get-start-position)
+                            _start-pos))
+      (define end-pos (if (eq? _end-pos 'end)
+                          (get-end-position)
+                          _end-pos))
+      (begin-edit-sequence)
+      (split-snip start-pos)
+      (split-snip end-pos)
+      (define cb (new comment-box:snip%))
+      (define text (send cb get-editor))
+      (let loop ([snip (find-snip start-pos 'after-or-none)])
+        (cond
+          [(not snip) (void)]
+          [((get-snip-position snip) . >= . end-pos) (void)]
+          [else
+           (send text insert (send snip copy)
+                 (send text last-position)
+                 (send text last-position))
+           (loop (send snip next))]))
+      (delete start-pos end-pos)
+      (insert cb start-pos)
+      (set-position start-pos start-pos)
+      (end-edit-sequence)
+      #t)
 
     ;; uncomment-box/selection : -> void
     ;; uncomments a comment box, if the focus is inside one.
     ;; otherwise, calls uncomment selection to uncomment
     ;; something else.
     (inherit get-focus-snip)
-    (define/public (uncomment-box/selection)
+    (define/public (uncomment-box/selection #:start [start ";"] #:padding [padding ""])
       (begin-edit-sequence)
-      (let ([focus-snip (get-focus-snip)])
-        (cond
-          [(not focus-snip) (uncomment-selection)]
-          [(is-a? focus-snip comment-box:snip%)
-           (extract-contents
-            (get-snip-position focus-snip)
-            focus-snip)]
-          [else (uncomment-selection)]))
+      (define focus-snip (get-focus-snip))
+      (cond
+        [(not focus-snip) (uncomment-selection #:start start #:padding padding)]
+        [(is-a? focus-snip comment-box:snip%)
+         (extract-contents
+          (get-snip-position focus-snip)
+          focus-snip)]
+        [else (uncomment-selection #:start start #:padding padding)])
       (end-edit-sequence)
       #t)
 
     (define/public (uncomment-selection [start-pos (get-start-position)]
                                         [end-pos (get-end-position)]
-                                        #:start-comment [start-comment ";"])
+                                        #:start [start-comment ";"]
+                                        #:padding [padding ""])
+      (or (uncomment-selection/box start-pos end-pos)
+          (uncomment-selection/line start-pos end-pos
+                                    #:start start-comment
+                                    #:padding padding))
+      #t)
+
+    (define/public (uncomment-selection/region [start-pos (get-start-position)]
+                                               [end-pos (get-end-position)]
+                                               #:start [start "#|"]
+                                               #:end [end "|#"]
+                                               #:continue [continue ""]
+                                               #:padding [padding "  "])
+      (define info
+        (looks-region-commented start-pos end-pos
+                                #:start start
+                                #:end end
+                                #:continue continue
+                                #:padding padding))
+      (when info
+        (begin-edit-sequence)
+        (for ([region-to-remove (in-list info)])
+          (delete (car region-to-remove) (cdr region-to-remove)))
+        (end-edit-sequence))
+      #t)
+
+    (define/public (uncomment-selection/line [start-pos (get-start-position)]
+                                             [end-pos (get-end-position)]
+                                             #:start [start-comment ";"]
+                                             #:padding [padding ""])
+      (begin-edit-sequence)
+      (define last-pos (last-position))
+      (define first-para (position-paragraph start-pos))
+      (define last-para (calc-last-para end-pos))
+      (for ([curr-para (in-range first-para (+ last-para 1))])
+        (define commented (looks-line-commented curr-para
+                                                #:start start-comment
+                                                #:padding padding))
+        (when commented
+          (delete (car commented) (cdr commented))))
+      (end-edit-sequence)
+      #t)
+
+    (define/public (uncomment-selection/box [start-pos (get-start-position)]
+                                            [end-pos (get-end-position)])
       (define snip-before (find-snip start-pos 'before-or-none))
       (define snip-after (find-snip start-pos 'after-or-none))
       (begin-edit-sequence)
+      (begin0
+        (cond
+          [(and (= start-pos end-pos)
+                snip-before
+                (is-a? snip-before comment-box:snip%))
+           (extract-contents start-pos snip-before)
+           #t]
+          [(and (= start-pos end-pos)
+                snip-after
+                (is-a? snip-after comment-box:snip%))
+           (extract-contents start-pos snip-after)
+           #t]
+          [(and (= (+ start-pos 1) end-pos)
+                snip-after
+                (is-a? snip-after comment-box:snip%))
+           (extract-contents start-pos snip-after)
+           #t]
+          [else #f])
+        (end-edit-sequence)))
+
+    (define/public (commented-out/line? [start-pos (get-start-position)]
+                                        [end-pos (get-end-position)]
+                                        #:start [start-comment ";"]
+                                        #:padding [padding ""])
+      (define first-para (position-paragraph start-pos))
+      (define last-para (calc-last-para end-pos))
+      (and (for/or ([curr-para (in-range first-para (+ last-para 1))])
+             (looks-line-commented curr-para
+                                   #:start start-comment
+                                   #:padding padding))
+           #t))
+
+    (define/public (commented-out/region? [start-pos (get-start-position)]
+                                          [end-pos (get-end-position)]
+                                          #:start [start "#|"]
+                                          #:end [end "|#"]
+                                          #:continue [continue ""])
+      (and (looks-region-commented start-pos end-pos
+                                   #:start start
+                                   #:end end
+                                   #:continue continue
+                                   #:padding "")
+           #t))
+
+    ;; -> (or/c (cons/c natural? natural?) #f)
+    ;; if #f, it doesn't look like the paragraph is commented out
+    ;; if a natural, it does, and the comment start at the result
+    (define/private (looks-line-commented curr-para
+                                          #:start start-comment
+                                          #:padding padding)
+      (define first-on-para
+        (skip-whitespace (paragraph-start-position curr-para)
+                         'forward
+                         #f))
+      (define last-on-para (paragraph-end-position curr-para))
+      (define end-of-potential-comment
+        (min last-on-para (+ first-on-para (string-length start-comment))))
       (cond
-        [(and (= start-pos end-pos)
-              snip-before
-              (is-a? snip-before comment-box:snip%))
-         (extract-contents start-pos snip-before)]
-        [(and (= start-pos end-pos)
-              snip-after
-              (is-a? snip-after comment-box:snip%))
-         (extract-contents start-pos snip-after)]
-        [(and (= (+ start-pos 1) end-pos)
-              snip-after
-              (is-a? snip-after comment-box:snip%))
-         (extract-contents start-pos snip-after)]
-        [else
-         (define last-pos (last-position))
-         (define first-para (position-paragraph start-pos))
-         (define last-para (calc-last-para end-pos))
-         (let para-loop ([curr-para first-para])
-           (when (<= curr-para last-para)
-             (define first-on-para
-               (skip-whitespace (paragraph-start-position curr-para)
-                                'forward
-                                #f))
-             (define last-on-para (paragraph-end-position curr-para))
-             (define end-of-potential-comment
-               (min last-on-para (+ first-on-para (string-length start-comment))))
-             (split-snip first-on-para)
-             (split-snip end-of-potential-comment)
-             (define all-string-snips?
-               (let loop ([snip (find-snip first-on-para 'after-or-none)])
-                 (cond
-                   [snip
-                    (define snip-pos (get-snip-position snip))
-                    (cond
-                      [(= snip-pos end-of-potential-comment) #t]
-                      [(< snip-pos end-of-potential-comment)
-                       (and (is-a? snip string-snip%)
-                            (loop (send snip next)))]
-                      [else
-                       (error 'racket.rkt::internal-error
-                              "went too far, but did a split-snip first")])]
-                   [else #t])))
-             (when (and all-string-snips?
-                        (equal? (get-text first-on-para end-of-potential-comment)
-                                start-comment))
-               (delete first-on-para (+ first-on-para (string-length start-comment))))
-             (para-loop (add1 curr-para))))])
-      (end-edit-sequence)
-      #t)
+        [(and (all-string-snips? first-on-para end-of-potential-comment)
+              (equal? (get-text first-on-para end-of-potential-comment)
+                      start-comment))
+         (define end-of-potential-padding
+           (+ end-of-potential-comment (string-length padding)))
+         (cond
+           [(and (<= end-of-potential-padding last-on-para)
+                 (all-string-snips? end-of-potential-comment end-of-potential-padding)
+                 (equal? (get-text end-of-potential-comment end-of-potential-padding)
+                         padding))
+            (cons first-on-para end-of-potential-padding)]
+           [else
+            (cons first-on-para end-of-potential-comment)])]
+        [else #f]))
+
+    (define/private (looks-region-commented start-pos end-pos
+                                            #:start start
+                                            #:end end
+                                            #:continue continue
+                                            #:padding padding)
+      (define start-para (position-paragraph start-pos))
+      (define end-para (position-paragraph end-pos))
+      (define start-comment-pos
+        (find-string start 'forward
+                     (paragraph-start-position start-para)
+                     (paragraph-end-position start-para)))
+      (define end-comment-pos
+        (find-string end 'forward
+                     (paragraph-start-position end-para)
+                     (paragraph-end-position end-para)))
+      (cond
+        [(and start-comment-pos end-comment-pos)
+         (define middles
+           (for/list ([para (in-range (+ start-para 1) end-para)])
+             (define start-pos (paragraph-start-position para))
+             (define end-of-padding (+ start-pos (string-length padding)))
+             (and (not (equal? "" padding))
+                  (all-string-snips? start-pos end-of-padding)
+                  (equal? (get-text start-pos end-of-padding) padding)
+                  (cons start-pos end-of-padding))))
+         (append
+          (list (cons end-comment-pos (+ end-comment-pos (string-length end))))
+          (filter values middles)
+          (list (cons start-comment-pos (+ start-comment-pos (string-length start)))))]
+        [else #f]))
+
+    (define/private (all-string-snips? start end)
+      (split-snip start)
+      (split-snip end)
+      (let loop ([snip (find-snip start 'after-or-none)])
+        (cond
+          [snip
+           (define snip-pos (get-snip-position snip))
+           (cond
+             [(= snip-pos end) #t]
+             [(< snip-pos end)
+              (and (is-a? snip string-snip%)
+                   (loop (send snip next)))]
+             [else
+              (error 'racket.rkt::internal-error
+                     "went too far, but did a split-snip first")])]
+          [else #t])))
 
     ;; extract-contents : number (is-a?/c comment-box:snip%) -> void
     ;; copies the contents of the comment-box-snip out of the snip

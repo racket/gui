@@ -21,7 +21,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; testing comment-out-selection and uncomment-selection
+;; testing comment-out-selection and related methods
 ;;
 
 (define (test-commenting)
@@ -49,15 +49,70 @@
     (define t (new racket:text%))
     (send t insert "ab\ncd")
     (send t set-position 1 (- (send t last-position) 1))
-    (send t comment-out-selection #:start-comment "#")
+    (send t comment-out-selection #:start "#")
     (check-equal? (send t get-text) "#ab\n#cd"))
 
   (let ()
     (define t (new racket:text%))
     (send t insert "ab\ncd")
     (send t set-position 1 (- (send t last-position) 1))
-    (send t comment-out-selection #:start-comment "#" #:padding " ")
+    (send t comment-out-selection #:start "#" #:padding " ")
     (check-equal? (send t get-text) "# ab\n# cd"))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "ab\ncd")
+    (send t set-position 1 2)
+    (send t region-comment-out-selection)
+    (check-equal? (send t get-text)
+                  "a#|b|#\ncd"))
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "ab\ncd")
+    (send t set-position 1 4)
+    (send t region-comment-out-selection)
+    (check-equal? (send t get-text)
+                  "a#|b\nc|#d"))
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "ab\ncd\nef")
+    (send t set-position 1 7)
+    (send t region-comment-out-selection)
+    (check-equal? (send t get-text)
+                  "a#|b\n  cd\ne|#f"))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "  # ab\n  ;cd")
+    (send t set-position 0 (send t last-position))
+    (check-equal? (send t commented-out/line? #:start "#") #t)
+    (check-equal? (send t commented-out/line? #:start ";") #t)
+    (check-equal? (send t commented-out/line? #:start ";" 0 0) #f)
+    (check-equal? (send t commented-out/line? #:start ";"
+                        (send t last-position) (send t last-position))
+                  #t)
+    (check-equal? (send t commented-out/line? #:start "#" 0 0) #t)
+    (check-equal? (send t commented-out/line? #:start "#"
+                        (send t last-position) (send t last-position))
+                  #f))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "  #| ab\n c |# d")
+    (send t set-position 0 (send t last-position))
+    (check-equal? (send t commented-out/region?) #t))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "  #| ab\n qq\n c |# d")
+    (send t set-position 0 (send t last-position))
+    (check-equal? (send t commented-out/region?) #t))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "a  #| |# z")
+    (send t set-position 0 (send t last-position))
+    (check-equal? (send t commented-out/region?) #t))
 
   (let ()
     (define t (new racket:text%))
@@ -84,21 +139,57 @@
     (define t (new racket:text%))
     (send t insert "#ab\n#cd")
     (send t set-position 0 (send t last-position))
-    (send t uncomment-selection #:start-comment "#")
+    (send t uncomment-selection #:start "#")
     (check-equal? (send t get-text) "ab\ncd"))
+
   (let ()
     (define t (new racket:text%))
     (send t insert "##ab\n##cd")
     (send t set-position 0 (send t last-position))
-    (send t uncomment-selection #:start-comment "##")
+    (send t uncomment-selection #:start "##")
     (check-equal? (send t get-text) "ab\ncd"))
 
   (let ()
     (define t (new racket:text%))
     (send t insert "  # ab\n  #cd")
     (send t set-position 1 (- (send t last-position) 1))
-    (send t uncomment-selection #:start-comment "#")
-    (check-equal? (send t get-text) "   ab\n  cd")))
+    (send t uncomment-selection #:start "#")
+    (check-equal? (send t get-text) "   ab\n  cd"))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "  # ab\n  # cd\n# ef\n#g")
+    (send t set-position 1 (- (send t last-position) 1))
+    (send t uncomment-selection #:start "#" #:padding " ")
+    (check-equal? (send t get-text) "  ab\n  cd\nef\ng"))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "  #| ab\n c |# d")
+    (send t set-position 0 (send t last-position))
+    (send t uncomment-selection/region)
+    (check-equal? (send t get-text) "   ab\n c  d"))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "  #| ab\n qq\n c |# d")
+    (send t set-position 0 (send t last-position))
+    (send t uncomment-selection/region)
+    (check-equal? (send t get-text) "   ab\n qq\n c  d"))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "  #| ab\n   qq\n c |# d")
+    (send t set-position 0 (send t last-position))
+    (send t uncomment-selection/region)
+    (check-equal? (send t get-text) "   ab\n qq\n c  d"))
+
+  (let ()
+    (define t (new racket:text%))
+    (send t insert "a  #| |# z")
+    (send t set-position 0 (send t last-position))
+    (send t uncomment-selection/region)
+    (check-equal? (send t get-text) "a    z")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

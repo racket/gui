@@ -136,42 +136,114 @@
     Deletes any trailing whitespace from the old line.
   }
 
-  @defmethod*[(((box-comment-out-selection
-                 (start-pos (or/c (symbols 'start) exact-integer?))
-                 (end-pos (or/c (symbols 'end) exact-integer?)))
-                void?))]{
-    This method comments out a selection in the text by putting it into a
-    comment box.
+ @defmethod[(box-comment-out-selection
+             [start-pos (or/c 'start exact-integer?) 'start]
+             [end-pos (or/c 'end exact-integer?) 'end])
+            #t]{
+  This method comments out a selection in the text by putting it into a
+  comment box.
 
-    Removes the region from @racket[start-pos] to @racket[end-pos] from the
-    editor and inserts a comment box with that region of text inserted into the
-    box.
+  Removes the region from @racket[start-pos] to @racket[end-pos] from the
+  editor and inserts a comment box with that region of text inserted into the
+  box.
 
-    If @racket[start-pos] is @racket['start], the starting point of the
-    selection is used.  If @racket[end-pos] is @racket['end], the ending point
-    of the selection is used.
-  }
+  If @racket[start-pos] is @racket['start], the starting point of the
+  selection is used.  If @racket[end-pos] is @racket['end], the ending point
+  of the selection is used.
+ }
 
- @defmethod[(comment-out-selection [start exact-integer? (get-start-position)]
-                                   [end exact-integer? (get-end-position)]
-                                   [#:start-comment start-comment string? ";"]
-                                   [#:padding padding string? ""])
-            void?]{
-  Comments the lines containing positions @racket[start] through @racket[end]
-  by inserting a @racket[start-comment] followed by @racket[padding] at the
+ @defmethod[(comment-out-selection [start-pos exact-nonnegative-integer? (get-start-position)]
+                                   [end-pos exact-nonnegative-integer? (get-end-position)]
+                                   [#:start start (and/c string? (not/c #rx"[\r\n]")) ";"]
+                                   [#:padding padding (and/c string? (not/c #rx"[\r\n]")) ""])
+            #t]{
+  Comments the lines containing positions @racket[start-pos] through @racket[end-pos]
+  by inserting a @racket[start] followed by @racket[padding] at the
   start of each paragraph.
  }
 
-  @defmethod[(uncomment-selection [start exact-integer? (get-start-position)]
-                                  [end exact-integer? (get-end-position)]
-                                  [#:start-comment start-comment string ";"]) void?]{
-  Uncomments the paragraphs containing positions
-  @racket[start] through @racket[end].
+ @defmethod[(region-comment-out-selection
+             [start-pos exact-nonnegative-integer? (get-start-position)]
+             [end-pos exact-nonnegative-integer? (get-end-position)]
+             [#:start start (and/c string? (not/c #rx"[\r\n]")) "#|"]
+             [#:end end (and/c string? (not/c #rx"[\r\n]")) "|#"]
+             [#:continue continue (and/c string? (not/c #rx"[\r\n]")) ""]
+             [#:padding padding (and/c string? (not/c #rx"[\r\n]")) "  "])
+            #t]{
+  Comments the region between @racket[start-pos] and @racket[end-pos]
+  by inserting a @racket[start] at @racket[start-pos], @racket[end] at @racket[end-pos],
+  and @racket[continue] followed by @racket[padding] at the start of each paragraph
+  between @racket[start-pos] and @racket[end-pos].
+ }
 
-  Specifically, removes each occurrence of
-  @racket[start-comment] that appears (potentially following
+ @defmethod[(uncomment-box/selection
+             [#:start start (and/c string? (not/c #rx"[\r\n]")) ";"]
+             [#:padding padding (and/c string? (not/c #rx"[\r\n]")) ""]) #t]{
+  If the result of @method[editor<%> get-focus-snip] is a comment snip,
+  then removes the comment snip. Otherwise, calls @racket[uncomment-selection]
+  with @racket[start] and @racket[padding].
+ }
+
+  @defmethod[(uncomment-selection [start-pos exact-nonnegative-integer? (get-start-position)]
+                                  [end-pos exact-nonnegative-integer? (get-end-position)]
+                                  [#:start start string ";"]) void?]{
+  Uncomments the paragraphs containing positions
+  @racket[start-pos] through @racket[end-pos] if it has line-based comments or
+  a box comment.
+
+  Specifically, checks for a box comment and, if present removes it.
+  If a box comment is not present, then removes line-based comments (if any)
+  on the paragraphs between @racket[start-pos] and @racket[end-pos].
+  }
+
+ @defmethod[(uncomment-selection/box [start-pos exact-nonnegative-integer? (get-start-position)]
+                                     [end-pos exact-nonnegative-integer? (get-end-position)])
+            boolean?]{
+  Checks for a box comment and, if present removes it. Returns @racket[#t] if
+  it found (and removed) a box comment, and @racket[#f] if it did not find
+  a box comment.
+  }
+
+  @defmethod[(uncomment-selection/line [start-pos exact-nonnegative-integer? (get-start-position)]
+                                       [end-pos exact-nonnegative-integer? (get-end-position)]
+                                       [#:start start (and/c string? (not/c #rx"[\r\n]")) ";"]
+                                       [#:padding padding (and/c string? (not/c #rx"[\r\n]")) ""])
+             #t]{
+  Removes each occurrence of
+  @racket[start] that appears (potentially following
   whitespace) at the start of each paragraph that enclose the
-  range between @racket[start] and @racket[end].
+  range between @racket[start-pos] and @racket[end-pos].
+ }
+
+ @defmethod[(uncomment-selection/region [start-pos exact-nonnegative-integer? (get-start-position)]
+                                        [end-pos exact-nonnegative-integer? (get-end-position)]
+                                        [#:start start (and/c string? (not/c #rx"[\r\n]")) "#|"]
+                                        [#:end end (and/c string? (not/c #rx"[\r\n]")) "|#"]
+                                        [#:continue continue (and/c string? (not/c #rx"[\r\n]")) ""]
+                                        [#:padding padding (and/c string? (not/c #rx"[\r\n]")) "  "])
+            #t]{
+  Removes the region comment on the paragraphs between @racket[start-pos] and @racket[end-pos].
+ }
+
+ @defmethod[(commented-out/line? [start-pos exact-nonnegative-integer? (get-start-position)]
+                                 [end-pos exact-nonnegative-integer? (get-end-position)]
+                                 [#:start start (and/c string? (not/c #rx"[\r\n]")) ";"]
+                                 [#:padding padding (and/c string? (not/c #rx"[\r\n]")) ""])
+            boolean?]{
+  Considers each paragraph between @racket[start-pos] and @racket[end-pos], returning
+  @racket[#t] if any of them have the line comment @racket[start] commenting any
+  portion of them out.
+ }
+
+ @defmethod[(commented-out/region? [start-pos exact-nonnegative-integer? (get-start-position)]
+                                   [end-pos exact-nonnegative-integer? (get-end-position)]
+                                   [#:start start (and/c string? (not/c #rx"[\r\n]")) "#|"]
+                                   [#:end end (and/c string? (not/c #rx"[\r\n]")) "|#"]
+                                   [#:continue continue (and/c string? (not/c #rx"[\r\n]")) ""])
+            boolean?]{
+  Returns @racket[#t] if the paragraphs at @racket[start-pos] and @racket[end-pos]
+  have @racket[start] and @racket[end] in them and the paragraphs in between
+  start with @racket[continue].
  }
 
   @defmethod*[(((get-forward-sexp (start exact-integer?))
