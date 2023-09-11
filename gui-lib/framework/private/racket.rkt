@@ -721,6 +721,8 @@
       (define start-para (position-paragraph start-pos))
       (define end-para (position-paragraph end-pos))
       (insert end end-pos)
+      (insert padding end-pos)
+      (insert padding start-pos)
       (insert start start-pos)
       (for ([i (in-range (+ start-para 1) end-para)])
         (define para-start (paragraph-start-position i))
@@ -905,21 +907,11 @@
                          #f))
       (define last-on-para (paragraph-end-position curr-para))
       (define end-of-potential-comment
-        (min last-on-para (+ first-on-para (string-length start-comment))))
+        (+ first-on-para (string-length start-comment)))
       (cond
-        [(and (all-string-snips? first-on-para end-of-potential-comment)
-              (equal? (get-text first-on-para end-of-potential-comment)
-                      start-comment))
-         (define end-of-potential-padding
-           (+ end-of-potential-comment (string-length padding)))
-         (cond
-           [(and (<= end-of-potential-padding last-on-para)
-                 (all-string-snips? end-of-potential-comment end-of-potential-padding)
-                 (equal? (get-text end-of-potential-comment end-of-potential-padding)
-                         padding))
-            (cons first-on-para end-of-potential-padding)]
-           [else
-            (cons first-on-para end-of-potential-comment)])]
+        [(has-the-string-at? first-on-para start-comment)
+         (extend-region-with-padding (cons first-on-para end-of-potential-comment)
+                                     padding)]
         [else #f]))
 
     (define/private (looks-region-commented start-pos end-pos
@@ -942,33 +934,59 @@
          (define middles
            (for/list ([para (in-range (+ start-para 1) end-para)])
              (define start-pos (paragraph-start-position para))
-             (define end-of-padding (+ start-pos (string-length padding)))
-             (and (not (equal? "" padding))
-                  (all-string-snips? start-pos end-of-padding)
-                  (equal? (get-text start-pos end-of-padding) padding)
-                  (cons start-pos end-of-padding))))
+             (define rgn
+               (and (has-the-string-at? start-pos continue)
+                    (cons start-pos (+ start-pos (string-length continue)))))
+             (and rgn (extend-region-with-padding rgn padding))))
          (append
-          (list (cons end-comment-pos (+ end-comment-pos (string-length end))))
+          (list (extend-region-with-padding
+                 (cons end-comment-pos (+ end-comment-pos (string-length end)))
+                 padding
+                 #:prefix? #t))
           (filter values middles)
-          (list (cons start-comment-pos (+ start-comment-pos (string-length start)))))]
+          (list (extend-region-with-padding
+                 (cons start-comment-pos (+ start-comment-pos (string-length start)))
+                 padding)))]
         [else #f]))
 
-    (define/private (all-string-snips? start end)
+    (define/private (extend-region-with-padding region padding #:prefix? [prefix? #f])
+      (match-define (cons start end) region)
+      (cond
+        [prefix?
+         (define start-before-padding (- start (string-length padding)))
+         (cond
+           [(and (0 . <= . start-before-padding)
+                 (has-the-string-at? start-before-padding padding))
+            (cons start-before-padding end)]
+           [else region])]
+        [else
+         (define end-after-padding (+ end (string-length padding)))
+         (cond
+           [(has-the-string-at? end padding)
+            (cons start end-after-padding)]
+           [else region])]))
+
+    (define/private (has-the-string-at? start str)
+      (define end (+ start (string-length str)))
       (split-snip start)
       (split-snip end)
-      (let loop ([snip (find-snip start 'after-or-none)])
-        (cond
-          [snip
-           (define snip-pos (get-snip-position snip))
-           (cond
-             [(= snip-pos end) #t]
-             [(< snip-pos end)
-              (and (is-a? snip string-snip%)
-                   (loop (send snip next)))]
-             [else
-              (error 'racket.rkt::internal-error
-                     "went too far, but did a split-snip first")])]
-          [else #t])))
+      (define all-string-snips?
+        (let loop ([snip (find-snip start 'after-or-none)])
+          (cond
+            [snip
+             (define snip-pos (get-snip-position snip))
+             (cond
+               [(= snip-pos end) #t]
+               [(< snip-pos end)
+                (and (is-a? snip string-snip%)
+                     (loop (send snip next)))]
+               [else
+                (error 'racket.rkt::internal-error
+                       "went too far, but did a split-snip first which seems strange")])]
+            [else #t])))
+      (and all-string-snips?
+           (equal? (get-text start (+ start (string-length str)))
+                   str)))
 
     ;; extract-contents : number (is-a?/c comment-box:snip%) -> void
     ;; copies the contents of the comment-box-snip out of the snip
