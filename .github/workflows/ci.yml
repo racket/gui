@@ -4,21 +4,22 @@ on: [push, pull_request]
 
 jobs:
   build-test:
-    runs-on: ubuntu-18.04
+    name: Build & Test (Racket ${{ matrix.variant }})
+    runs-on: ubuntu-latest
     container: racket/racket-ci:latest
 
     strategy:
       fail-fast: false
       matrix:
-        vm: ['BC', 'CS']
+        variant: ['BC', 'CS']
 
     steps:
     - uses: actions/checkout@master
-    - uses: Bogdanp/setup-racket@v1.8.1
+    - uses: Bogdanp/setup-racket@v1.10
       with:
         architecture: 'x64'
         distribution: 'minimal'
-        variant: ${{ matrix.vm }}
+        variant: ${{ matrix.variant }}
         version: 'current'
     - name: Install and setup
       run: |
