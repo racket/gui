@@ -2,12 +2,19 @@
 
 (require ffi/unsafe/objc
          racket/draw/private/color
-         "types.rkt")
+         "types.rkt"
+         "utils.rkt")
 
 (provide
+ get-default-label-color
  color->NSColor)
 
 (import-class NSColor)
+
+(define (get-default-label-color)
+  (if (version-10.10-or-later?)
+      (tell NSColor labelColor)
+      (tell NSColor controlTextColor)))
 
 (define (color->NSColor c)
   (tell NSColor
