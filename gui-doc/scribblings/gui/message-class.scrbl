@@ -77,12 +77,16 @@ Otherwise, sets the bitmap label for a bitmap message.
 
 }
 
-@defmethod*[([(set-color [color (is-a?/c color%)]) void?]
+@defmethod*[([(set-color [color (or/c #f (is-a?/c color%))]) void?]
              [(set-color [color-name string?]) void?])]{
-  Sets the label's text color.  This method has no effect if the label
-  is a symbol or a bitmap.
+  Sets the label's text color. When @racket[color] is @racket[#f], sets
+  the label's text color to the platform default. This method has no
+  effect if the label is a symbol or a bitmap.
 
-  @history[#:added "1.58"]
+  @history[
+    #:added "1.58"
+    #:changed "1.71" @elem{Added support for setting the color to the system default.}
+  ]
 }
 
 @defmethod[(get-color) (or/c #f (is-a?/c color%))]{
