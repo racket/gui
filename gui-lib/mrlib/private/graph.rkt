@@ -456,11 +456,7 @@
           (let ([old-font (send dc get-font)])
             (when edge-label-font
               (send dc set-font edge-label-font))
-            (cond
-              [pending-invalidate-rectangle
-               (add-to-pending-indvalidate-rectangle left top right bottom)]
-              [else
-               (draw-edges dc left top right bottom dx dy)])
+            (draw-edges dc left top right bottom dx dy)
             (when edge-label-font
               (send dc set-font old-font))))
         (super on-paint before? dc left top right bottom dx dy draw-caret))
@@ -713,7 +709,6 @@
                            [y1 (+ yf (/ hf 2))]
                            [x2 (+ xt (/ wt 2))]
                            [y2 (+ yt (/ ht 2))])
-                       
                        (unless (or (and (x1 . <= . left)
                                         (x2 . <= . left))
                                    (and (x1 . >= . right)
