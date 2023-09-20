@@ -151,3 +151,48 @@
           2)
     (check-equal? lines
                   (set))))
+
+
+(let ()
+  (define t (new (text:indent-guides-mixin text%)))
+  (send t insert
+        (string-append
+         "#lang shrubbery\n"
+         "\n"
+         "\n"
+         "/*\n"
+         "begin:\n"
+         "  apple\n"
+         " \n"
+         "  banana\n"
+         "  */\n"))
+  (check-equal?
+   (skip-list->list (send t get-guides))
+   (list
+    (cons 0 (guide 0 0 '()))
+    (cons 1 (guide #f #f '()))
+    (cons 2 (guide #f #f '()))
+    (cons 3 (guide 0 0 '()))
+    (cons 4 (guide 0 0 '()))
+    (cons 5 (guide 2 0 '()))
+    (cons 6 (guide #f #f '(2)))
+    (cons 7 (guide 2 0 '()))
+    (cons 8 (guide 2 0 '()))
+    (cons 9 (guide #f #f '()))))
+
+  (send t insert "\n\n" (send t paragraph-start-position 2))
+  (check-equal?
+   (skip-list->list (send t get-guides))
+   (list
+    (cons 0 (guide 0 0 '()))
+    (cons 1 (guide #f #f '()))
+    (cons 2 (guide #f #f '()))
+    (cons 3 (guide #f #f '()))
+    (cons 4 (guide #f #f '()))
+    (cons 5 (guide 0 0 '()))
+    (cons 6 (guide 0 0 '()))
+    (cons 7 (guide 2 0 '()))
+    (cons 8 (guide #f #f '(2)))
+    (cons 9 (guide 2 0 '()))
+    (cons 10 (guide 2 0 '()))
+    (cons 11 (guide #f #f '())))))
