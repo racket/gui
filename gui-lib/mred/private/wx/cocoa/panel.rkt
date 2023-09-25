@@ -6,7 +6,8 @@
          "types.rkt"
          "utils.rkt"
          "cg.rkt"
-         "window.rkt")
+         "window.rkt"
+         "procs.rkt")
 
 (provide 
  (protect-out panel%
@@ -24,11 +25,18 @@
   []
   (-a #:async-apply (box (void))
       _void (drawRect: [_NSRect r])
-      (let ([ctx (tell NSGraphicsContext currentContext)])
+      (let ([wob? (white-on-black-panel-scheme?)]
+            [ctx (tell NSGraphicsContext currentContext)])
         (tellv ctx saveGraphicsState)
         (let ([cg (tell #:type _CGContextRef ctx graphicsPort)]
               [r (tell #:type _NSRect self bounds)])
-          (CGContextSetRGBFillColor cg 0 0 0 1.0)
+          (cond
+            [wob?
+             (CGContextSetRGBFillColor cg 0 0 0 1.0)
+             (CGContextSetRGBStrokeColor cg 0.8 0.8 0.8 1.0)]
+            [else
+             (CGContextSetRGBFillColor cg 1.0 1.0 1.0 1.0)
+             (CGContextSetRGBStrokeColor cg 0 0 0 1.0)])
           (CGContextAddRect cg r)
           (CGContextStrokePath cg))
         (tellv ctx restoreGraphicsState))))

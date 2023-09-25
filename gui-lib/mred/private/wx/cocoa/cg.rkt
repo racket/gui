@@ -24,6 +24,7 @@
 (define-appserv CGContextRestoreGState (_fun _CGContextRef -> _void))
 (define-appserv CGContextConcatCTM (_fun _CGContextRef _CGAffineTransform -> _void))
 (define-appserv CGContextSetRGBFillColor (_fun _CGContextRef _CGFloat _CGFloat _CGFloat _CGFloat -> _void))
+(define-appserv CGContextSetRGBStrokeColor (_fun _CGContextRef _CGFloat _CGFloat _CGFloat _CGFloat -> _void))
 (define-appserv CGContextFillRect (_fun _CGContextRef _NSRect -> _void))
 (define-appserv CGContextClearRect (_fun _CGContextRef _NSRect -> _void))
 (define-appserv CGContextAddRect (_fun _CGContextRef _NSRect -> _void))
