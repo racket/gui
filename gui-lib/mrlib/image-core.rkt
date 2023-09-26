@@ -1327,6 +1327,7 @@ has been moved out).
         
         (send dc translate dx dy)
         (send dc rotate θ)
+        (send dc set-smoothing 'smoothed)
         
         (define bw (send bitmap-obj get-width))
         (define bh (send bitmap-obj get-height))
