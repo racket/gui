@@ -45,15 +45,16 @@
 
 (define (do-set-label-color label c)
   (define attrs (pango_attr_list_new))
-  (define color-attr (pango_attr_foreground_new
-                      (color-component->gtk (color-red c))
-                      (color-component->gtk (color-green c))
-                      (color-component->gtk (color-blue c))))
-  (define color-alpha-attr (pango_attr_foreground_alpha_new
-                            (color-component->gtk (* (color-alpha c) 255))))
-  (pango_attr_list_insert attrs color-attr)
-  (when color-alpha-attr
-    (pango_attr_list_insert attrs color-alpha-attr))
+  (when c
+    (define color-attr (pango_attr_foreground_new
+                        (color-component->gtk (color-red c))
+                        (color-component->gtk (color-green c))
+                        (color-component->gtk (color-blue c))))
+    (define color-alpha-attr (pango_attr_foreground_alpha_new
+                              (color-component->gtk (* (color-alpha c) 255))))
+    (pango_attr_list_insert attrs color-attr)
+    (when color-alpha-attr
+      (pango_attr_list_insert attrs color-alpha-attr)))
   (gtk_label_set_attributes label attrs))
 
 (defclass message% item%

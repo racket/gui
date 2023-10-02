@@ -134,6 +134,8 @@
   (define/public (set-color c)
     (when text-label?
       (set! color c)
-      (tellv (get-cocoa) setTextColor: (color->NSColor c))))
+      (tellv (get-cocoa) setTextColor: (if c
+                                           (color->NSColor c)
+                                           (get-default-label-color)))))
 
   (def/public-unimplemented get-font))
