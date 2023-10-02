@@ -46,8 +46,10 @@
                end-edit-sequence
                invalidate-bitmap-cache)
 
+      (define find-indent-cache (make-string 0))
+
       ;; para -o> guide
-      (define guides (make-adjustable-skip-list))
+      (define guides #f)
       (define/public-final (get-guides) guides)
       (define/public-final (show-indent-guides! on?)
         (cond
@@ -62,7 +64,7 @@
       (define/public (show-indent-guides?) (and guides #t))
 
       (super-new)
-
+      (show-indent-guides! #t)
 
       ;                                                    
       ;                                                    
@@ -265,7 +267,6 @@
       ;; given a paragraph, this function calculates the indent; this is
       ;; mostly a matter of counting spaces, but is slightly complicated to
       ;; avoid allocation and use fast paths in the text% object
-      (define find-indent-cache (make-string 0))
       (define/private (find-indent para)
         (define para-start (paragraph-start-position para))
         (let loop ([snip (find-snip para-start 'after-or-none)]
