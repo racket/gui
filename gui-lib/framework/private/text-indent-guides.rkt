@@ -44,9 +44,23 @@
                find-position
                begin-edit-sequence
                end-edit-sequence
+               in-edit-sequence?
                invalidate-bitmap-cache)
 
+      (define on-delete-contract-start #f)
+      (define on-delete-contract-end #f)
+      (define initial-pending-lines-cache-key #f)
+      (define initial-pending-lines-cache #f)
+      (define/private (reset-initial-pending-lines-cache)
+        (set! initial-pending-lines-cache-key #f)
+        (set! initial-pending-lines-cache #f))
+
       (define find-indent-cache (make-string 0))
+
+      ;; boolean?
+      ;; #t => call recalculate-x-for-guides at the
+      ;;       end of the enclosing edit-sequence
+      (define recalculate-x-for-guides-after-edit-sequence #f)
 
       ;; para -o> guide
       (define guides #f)
@@ -303,6 +317,12 @@
           (when (guide-indent guide)
             (calculate-guide-x para-start (guide-indent guide) bx)
             (set-guide-x! guide (unbox bx)))))
+      (define/private (trigger-recalculate-x-for-guides)
+        (cond
+          [(in-edit-sequence?)
+           (set! recalculate-x-for-guides-after-edit-sequence #t)]
+          [else
+           (recalculate-x-for-guides)]))
     
       (define/private (calculate-guide-x para-start indent bx)
         (position-location (+ para-start indent) bx #f #t #t))
@@ -316,8 +336,6 @@
           (skip-list-expand! guides para1 para2)
           (recalculate-lines-guides (scan-blank-backwards para1) para2))
         (inner (void) after-insert start len))
-      (define on-delete-contract-start #f)
-      (define on-delete-contract-end #f)
       (define/augment (on-delete start len)
         (when guides
           (begin-edit-sequence)
@@ -334,13 +352,19 @@
       (define/augment (on-change)
         (when guides
           (reset-initial-pending-lines-cache)
-          (recalculate-x-for-guides))
+          (trigger-recalculate-x-for-guides))
         (inner (void) on-change))
       (define/augment (on-reflow)
         (when guides
           (reset-initial-pending-lines-cache)
-          (recalculate-x-for-guides))
+          (trigger-recalculate-x-for-guides))
         (inner (void) on-reflow))
+      (define/augment (after-edit-sequence)
+        (when recalculate-x-for-guides-after-edit-sequence
+          (set! recalculate-x-for-guides-after-edit-sequence #f)
+          (recalculate-x-for-guides))
+        (inner (void) after-edit-sequence))
+
       (define/private (scan-blank-backwards para)
         ;; scan backwards to include any blank paragraphs above `para`
         (let loop ([para para])
@@ -391,12 +415,6 @@
             (send dc set-pen pen-before)))
         (super on-paint before? dc left top right bottom dx dy draw-caret))
 
-      (define initial-pending-lines-cache-key #f)
-      (define initial-pending-lines-cache #f)
-      (define/private (reset-initial-pending-lines-cache)
-        (set! initial-pending-lines-cache-key #f)
-        (set! initial-pending-lines-cache #f))
-    
       (define/public (draw-the-lines draw-a-line top-para bot-para)
         ;; this iterates through the paragraphs, figuring out when
         ;; lines start and end and drawing them when they end
