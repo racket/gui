@@ -167,6 +167,8 @@
     ("bowtie" "⋈")
     ("subseteq" "⊆")
     ("supseteq" "⊇")
+    ("nsubseteq" "⊈")
+    ("subsetneq" "⊊")
     ("cong" "≅")
     ("sqsubsetb" "⊏")
     ("sqsupsetb" "⊐")
