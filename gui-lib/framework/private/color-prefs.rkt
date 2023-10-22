@@ -679,7 +679,7 @@
   (string-append
    "#lang racket   ; draw a graph of\n"
    "(require plot) ; cos and log\n"
-   "(plot #:label \"y = cos(x) & y = log(x)\"\n"
+   "(plot #:title \"y = cos(x) & y = log(x)\"\n"
    "      (list (function cos -5 5) (function log -5 5)))\n"
    "\"an unclosed string is an error"))
 
