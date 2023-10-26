@@ -6,6 +6,7 @@
           "../../syntax.rkt"
           "../../lock.rkt"
          "window.rkt"
+         "frame.rkt"
          "utils.rkt"
          "types.rkt"
          "const.rkt"
@@ -16,18 +17,14 @@
               panel-mixin
               panel-container-mixin
 
-              gtk_fixed_new
-              gtk_fixed_move
               gtk_event_box_new
 
               gtk_container_set_border_width
               connect-expose/draw-border))
 
-(define-gtk gtk_fixed_new (_fun -> _GtkWidget))
 (define-gtk gtk_event_box_new (_fun -> _GtkWidget))
 (define-gtk gtk_event_box_set_visible_window (_fun _GtkWidget _gboolean -> _void))
 
-(define-gtk gtk_fixed_move (_fun _GtkWidget _GtkWidget _int _int -> _void))
 (define-gtk gtk_widget_get_visible (_fun _GtkWidget -> _gboolean)
   #:fail (lambda () #f))
 

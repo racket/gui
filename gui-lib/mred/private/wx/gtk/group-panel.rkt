@@ -6,6 +6,7 @@
          "window.rkt"
          "client-window.rkt"
          "panel.rkt"
+         "frame.rkt"
          "utils.rkt"
          "types.rkt")
 

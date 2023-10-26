@@ -25,6 +25,7 @@
          "gl-context.rkt"
          "combo.rkt"
          "gcwin.rkt"
+         "frame.rkt"
          "panel.rkt")
 
 (provide 

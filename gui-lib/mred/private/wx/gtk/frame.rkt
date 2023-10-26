@@ -29,6 +29,10 @@
               location->window
               get-current-mouse-state
               gtk_window_set_transient_for
+
+              gtk_fixed_new
+              gtk_fixed_move
+
               tell-all-frames-request-refresh-all-canvas-children))
 
 ;; ----------------------------------------
