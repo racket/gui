@@ -9,6 +9,7 @@
          "types.rkt"
          "widget.rkt"
          "message.rkt"
+         "frame.rkt"
          "../../lock.rkt"
          "../common/event.rkt")
 
