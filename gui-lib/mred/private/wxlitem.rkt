@@ -397,17 +397,19 @@
 
       (define c (make-object wx-internal-slider% mred proxy (get-p) func label value min-val max-val
                              (filter-style style) font))
-      
-      (set-c c 
-             (memq 'horizontal style)
-             (memq 'vertical style))
-      
+
+      (let ([vert? (or (memq 'vertical style)
+                       (memq 'upward style))])
+        (set-c c
+               (not vert?)
+               vert?)
+        (let ([h? (not vert?)])
+          (stretchable-in-x h?)
+          (stretchable-in-y (not h?))))
+
       (bounce 
        c
        (get-value)
-       (set-value v))
-      (let ([h? (and (memq 'horizontal style) #t)])
-        (stretchable-in-x h?)
-        (stretchable-in-y (not h?)))))
-  
+       (set-value v))))
+
 )

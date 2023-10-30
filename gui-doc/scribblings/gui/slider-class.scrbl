@@ -23,7 +23,7 @@ Whenever the user changes the value of a slider, its callback
                                (is-a?/c panel%) (is-a?/c pane%))]
                  [callback ((is-a?/c slider%) (is-a?/c control-event%) . -> . any) (lambda (b e) (void))]
                  [init-value position-integer? min-value]
-                 [style (listof (or/c 'horizontal 'vertical 'plain 
+                 [style (listof (or/c 'horizontal 'vertical 'upward 'plain
                                       'vertical-label 'horizontal-label 
                                       'deleted)) 
                         '(horizontal)]
@@ -51,14 +51,18 @@ The @racket[min-value] and @racket[max-value] arguments specify the
 The @racket[callback] procedure is called (with the event type
  @indexed-racket['slider]) when the user changes the slider's value.
 
-The @racket[style] argument must include either @racket['vertical] for
- a vertical slider, or @racket['horizontal] for a horizontal
- slider. If @racket[style] includes @racket['plain], the slider does
+The @racket[style] argument must include either @racket['horizontal] for a horizontal
+ slider going left-to-right, @racket['upward] for
+ a vertical slider going up, or @racket['vertical] for
+ a vertical slider going down (but beware that @racket['vertical] might render
+ with misleading colors on Mac OS, where the system toolkit supports only upward sliders).
+ If @racket[style] includes @racket['plain], the slider does
  not display numbers for its range and current value to the user.
  @HVLabelNote[@racket[style]]{slider} @DeletedStyleNote[@racket[style] @racket[parent]]{slider}
 
 @FontKWs[@racket[font]] @WindowKWs[@racket[enabled]] @SubareaKWs[] @AreaKWs[]
 
+@history[#:changed "1.73" @elem{Added @racket['upward] as a possible @racket[style] element.}]
 
 }
 

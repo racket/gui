@@ -1803,17 +1803,20 @@
   (instructions p "combo-steps.txt")
   (send f show #t))
 
+(define slider-frame-style 'horizontal)
+(define slider-frame-max 11)
+
 (define (slider-frame style)
   (define f (make-frame frame% "Slider Test"))
   (define p (make-object vertical-panel% f))
   (define old-list null)
   (define commands (list 'slider))
-  (define s (make-object slider% "Slide Me" -1 11 p
+  (define s (make-object slider% "Slide Me" -1 slider-frame-max p
 			 (lambda (sl e)
 			   (check-callback-event s sl e commands #f)
 			   (printf "slid: ~a\n" (send s get-value)))
 			 3
-                         (cons 'horizontal style)))
+                         (cons slider-frame-style style)))
   (define c (make-object button% "Check" p
 			 (lambda (c e)
 			   (for-each
@@ -2467,6 +2470,17 @@
 (make-object vertical-pane% gsp) ; filler
 (make-object button% "Make Slider Frame" gsp (lambda (b e) (slider-frame null)))
 (make-object button% "Make Plain Slider Frame" gsp (lambda (b e) (slider-frame '(plain))))
+(make-object choice% #f '("Left" "Down" "Up" "Left^" "Down^" "Up^")
+             gsp (lambda (c e)
+                   (set! slider-frame-style
+                         (case (send c get-selection)
+                           [(0 3) 'horizontal]
+                           [(1 4) 'vertical]
+                           [(2 5) 'upward]))
+                   (set! slider-frame-max
+                         (case (send c get-selection)
+                           [(0 1 2) 11]
+                           [(3 4 5) 1023]))))
 (make-object vertical-pane% gsp) ; filler
 (make-object button% "Make Tab Panel" gsp (lambda (b e) (test-tab-panel #f)))
 (make-object button% "Make Tabs" gsp (lambda (b e) (test-tab-panel #t)))

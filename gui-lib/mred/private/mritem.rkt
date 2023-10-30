@@ -451,7 +451,7 @@
       (check-container-parent cwho parent)
       (check-callback cwho callback)
       (check-slider-integer cwho init-value)
-      (check-style cwho '(vertical horizontal) '(plain vertical-label horizontal-label deleted) style)
+      (check-style cwho '(vertical horizontal upward) '(plain vertical-label horizontal-label deleted) style)
       (check-font cwho font)
       (unless (<= minv maxv)
         (raise-arguments-error (who->name cwho)

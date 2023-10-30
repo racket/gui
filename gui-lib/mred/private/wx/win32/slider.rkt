@@ -43,7 +43,10 @@
            auto-size)
 
   (define callback cb)
-  (define vertical? (memq 'vertical style))
+  (define vertical? (or (memq 'vertical style)
+                        (memq 'upward style)))
+  (define up? (memq 'upward style))
+  (define upward-hi (and up? hi))
 
   (define panel-hwnd
     (if (memq 'plain style)
@@ -127,7 +130,7 @@
 
   (SendMessageW slider-hwnd TBM_SETRANGEMIN 1 lo)
   (SendMessageW slider-hwnd TBM_SETRANGEMAX 1 hi)
-  (set-value val)
+  (set-value (if up? (- hi val) val))
 
   (define/override (set-size x y w h)
     (super set-size x y w h)
@@ -165,4 +168,7 @@
     (SetWindowTextW value-hwnd (format "~s" val)))
     
   (define/public (get-value)
-    (SendMessageW slider-hwnd TBM_GETPOS 0 0)))
+    (define v (SendMessageW slider-hwnd TBM_GETPOS 0 0))
+    (if up?
+        (- upward-hi v)
+        v)))
