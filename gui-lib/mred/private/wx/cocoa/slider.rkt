@@ -63,6 +63,8 @@
                                              (make-NSPoint 0 0)
                                              (make-NSSize (if vert? 24 32)
                                                           (if vert? 64 24))))
+      (when (and vert? (version-10.12-or-later?))
+        (tellv cocoa setVertical: #:type _BOOL #t))
       (tellv cocoa setContinuous: #:type _BOOL #t)
       ;; (tellv cocoa sizeToFit)
       cocoa))
