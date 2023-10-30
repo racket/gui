@@ -23,6 +23,7 @@
 (define-gtk gtk_range_get_value (_fun _GtkWidget -> _double))
 (define-gtk gtk_scale_set_digits (_fun _GtkWidget _int -> _void))
 (define-gtk gtk_scale_set_draw_value (_fun _GtkWidget _gboolean -> _void))
+(define-gtk gtk_range_set_inverted (_fun _GtkWidget _gboolean -> _void))
 
 (define-signal-handler connect-changed "value-changed"
   (_fun _GtkWidget -> _void)
@@ -42,7 +43,8 @@
 
   (super-new [parent parent]
              [gtk (as-gtk-allocation
-                   (if (memq 'vertical style)
+                   (if (or (memq 'vertical style)
+			   (memq 'upward style))
                        (gtk_vscale_new #f)
                        (gtk_hscale_new #f)))]
              [callback cb]
@@ -53,6 +55,8 @@
   (gtk_range_set_range gtk lo hi)
   (gtk_range_set_increments gtk 1.0 1.0)
   (gtk_range_set_value gtk val)
+  (when (memq 'upward style)
+    (gtk_range_set_inverted gtk #true))
 
   (when (memq 'plain style)
     (gtk_scale_set_draw_value gtk #f))

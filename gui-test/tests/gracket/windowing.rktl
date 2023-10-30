@@ -643,7 +643,12 @@
    (new slider% [parent parent] [label #f] [min-value 10] [max-value 9]))
   (mismatch
    (new slider% [parent parent] [label #f] [min-value 10] [max-value 11] [init-value 12]))
-  (letrec ([s (make-object slider% 
+  (letrec ([style (case (random 3)
+                    [(0) '(horizontal)]
+                    [(1) '(vertical)]
+                    [(2) '(upward)])]
+           [horiz? (and (memq 'horizontal style) #t)]
+           [s (make-object slider%
 			   "&Slider"
 			   -2 8
 			   parent
@@ -653,7 +658,7 @@
 			     (set! side-effect 'slider)
 			     'oops)
 			   3
-			   '(horizontal))])
+                           style)])
     (label-test s "Slider")
     (stv s command (make-object control-event% 'slider))
     (test 'slider 'slider-callback side-effect)
@@ -666,7 +671,7 @@
     (stv s set-value 8)
     (st 8 s get-value)
 
-    (containee-window-tests s #t #f parent frame 2))
+    (containee-window-tests s horiz? (not horiz?) parent frame 2))
 
   (let ([test-list-control
 	 (lambda (l choice? multi?)
