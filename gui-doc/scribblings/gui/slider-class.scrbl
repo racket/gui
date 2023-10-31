@@ -45,8 +45,8 @@ If @racket[label] is a string, it is used as the label for the slider.
 The @racket[min-value] and @racket[max-value] arguments specify the
  range of the slider, inclusive. The @racket[init-value] argument
  optionally specifies the slider's initial value. If the sequence
- [@racket[min-value], @racket[initial-value], @racket[maximum-value]]
- is not increasing, @|MismatchExn|.
+ [@racket[min-value], @racket[init-value], @racket[max-value]]
+ is not non-decreasing, @|MismatchExn|.
 
 The @racket[callback] procedure is called (with the event type
  @indexed-racket['slider]) when the user changes the slider's value.
