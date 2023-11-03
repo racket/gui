@@ -2025,8 +2025,10 @@
                                                         (let ([rl? read-locked?])
                                                           (set! read-locked? #t)
                                                           (send s-caret-snip own-caret #f)
+                                                          (do-own-caret #t)
                                                           (set! read-locked? rl?)
                                                           (set! s-caret-snip #f)
+                                                          (on-focus #t)
                                                           #t))
                                                    update-cursor?)])
                                           
