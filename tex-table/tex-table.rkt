@@ -133,6 +133,7 @@
     ("land" "∧")
     ("lnot" "¬")
     ("triangleleft" "◃")
+    ("angle" "∠")
     ("odot" "⊙")
     ("star" "★")
     ("dagger" "†")
@@ -190,7 +191,11 @@
     ("coprod" "∐")
     
     ("int" "∫")
+    ("iint" "∬")
+    ("iiint" "∭")
     ("oint" "∮")
+    ("oiint" "∯")
+    ("oiiint" "∰")
 
     ("sqrt" "√")
     
@@ -198,6 +203,14 @@
     ("smiley" "☺")
     ("blacksmiley" "☻")
     ("frownie" "☹")
+
+    ("Naturals" "ℕ")
+    ("Integers" "ℤ")
+    ("Rationals" "ℚ")
+    ("Reals" "ℝ")
+    ("Complex" "ℂ")
+    ("Re" "ℜ")
+    ("Im" "ℑ")
     
     ("S" "§")
     ("l" "ł")
