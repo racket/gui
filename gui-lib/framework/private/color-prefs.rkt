@@ -233,6 +233,31 @@
        (send smoothing-menu set-selection (smoothing->index (send sd get-smoothing-on)))))
     (void))
 
+(define (normalize-color-selection-button-widths parent)
+  (send parent reflow-container)
+  (define button-labels
+    (list (string-constant cs-background-color)
+          (string-constant cs-foreground-color)
+          (string-constant cs-change-color)))
+  (define buttons '())
+
+  (let loop ([obj parent])
+    (cond
+      [(is-a? obj area-container<%>)
+       (for ([child (in-list (send obj get-children))])
+           (loop child))]
+      [(is-a? obj button%)
+       (when (member (send obj get-label)
+                     button-labels)
+         (set! buttons (cons obj buttons)))]))
+
+  (define max-width
+    (for/fold ([biggest 0])
+              ([button (in-list buttons)])
+      (max biggest (send button get-width))))
+  (for ([button (in-list buttons)])
+    (send button min-width max-width)))
+
   (define (add/mult-get c)
     (list (send c get-r)
           (send c get-g)

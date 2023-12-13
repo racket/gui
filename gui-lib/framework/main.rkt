@@ -2105,6 +2105,18 @@ was never saved, then the first element of the list is @racket[#f].
     in the panel so users can see the results of their configuration.})
 
  (proc-doc/names
+  color-prefs:normalize-color-selection-button-widths
+  (-> (is-a?/c area-container<%>)
+      void?)
+  (parent)
+  @{Given a panel that was passed to @racket[color-prefs:build-color-selection-panel]
+(perhaps multiple times), @racket[color-prefs:normalize-color-selection-button-widths]
+will ensure that the panel contents line up with each other, by making sure that
+the color selection buttons all have the same size.
+
+@history[#:added "1.72"]})
+
+ (proc-doc/names
   color-prefs:marshall-style-delta
   (-> (is-a?/c style-delta%) printable/c)
   (style-delta)

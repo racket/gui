@@ -362,6 +362,7 @@
     (register-color-preference
      add-to-preferences-panel
      build-color-selection-panel
+     normalize-color-selection-button-widths
      add-background-preferences-panel
      marshall-style-delta
      unmarshall-style-delta
