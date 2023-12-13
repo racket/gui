@@ -204,11 +204,11 @@
     ("blacksmiley" "☻")
     ("frownie" "☹")
 
-    ("Naturals" "ℕ")
-    ("Integers" "ℤ")
-    ("Rationals" "ℚ")
-    ("Reals" "ℝ")
-    ("Complex" "ℂ")
+    ("bC" "ℂ")
+    ("bN" "ℕ")
+    ("bQ" "ℚ")
+    ("bR" "ℝ")
+    ("bZ" "ℤ")
     ("Re" "ℜ")
     ("Im" "ℑ")
     
