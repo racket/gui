@@ -1,5 +1,5 @@
 #lang racket/base
-(require racket/contract)
+(require racket/contract racket/match)
 
 (define (string-len-one? x)
   (and (string? x)
@@ -9,7 +9,26 @@
  [tex-shortcut-table
   (listof (list/c string? string-len-one?))])
 
+(define blackboard-bold
+  (for*/list ([i (in-string "ABCDEFGHIJKLMNOPQRSTUVWXYZ")])
+    (cond
+      [(member i (string->list "CHNPQRZ"))
+       (list (format "b~a" i)
+             (match i
+               [#\C "ℂ"]
+               [#\H "ℍ"]
+               [#\N "ℕ"]
+               [#\P "ℙ"]
+               [#\Q "ℚ"]
+               [#\R "ℝ"]
+               [#\Z "ℤ"]))]
+      [else
+       (define bo (- (char->integer #\𝔸) (char->integer #\A)))
+       (list (format "b~a" i)
+             (string (integer->char (+ (char->integer i) bo))))])))
+
 (define tex-shortcut-table
+  (append
   '(("Downarrow" "⇓")
     ("nwarrow" "↖")
     ("downarrow" "↓")
@@ -204,17 +223,11 @@
     ("blacksmiley" "☻")
     ("frownie" "☹")
 
-    ("bC" "ℂ")
-    ("bN" "ℕ")
-    ("bQ" "ℚ")
-    ("bR" "ℝ")
-    ("bZ" "ℤ")
     ("Re" "ℜ")
     ("Im" "ℑ")
-    
     ("S" "§")
     ("l" "ł")
-    
+
     ("newpage" "\f")
     
     ("vdots" "⋮")
@@ -234,10 +247,10 @@
     ("leftmultimap" "⟜")
     ("multimapinv" "⟜")
     ("leftlollipop" "⟜")
-    ))
+    )
+  blackboard-bold))
 
 (module+ test
-  (require racket/match)
   (define name-ht (make-hash))
   (define val-ht (make-hash))
   (for ([line (in-list tex-shortcut-table)])
