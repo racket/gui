@@ -10,22 +10,32 @@
   (listof (list/c string? string-len-one?))])
 
 (define blackboard-bold
-  (for*/list ([i (in-string "ABCDEFGHIJKLMNOPQRSTUVWXYZ")])
-    (cond
-      [(member i (string->list "CHNPQRZ"))
-       (list (format "b~a" i)
-             (match i
-               [#\C "ℂ"]
-               [#\H "ℍ"]
-               [#\N "ℕ"]
-               [#\P "ℙ"]
-               [#\Q "ℚ"]
-               [#\R "ℝ"]
-               [#\Z "ℤ"]))]
-      [else
-       (define bo (- (char->integer #\𝔸) (char->integer #\A)))
-       (list (format "b~a" i)
-             (string (integer->char (+ (char->integer i) bo))))])))
+  (append
+   (for*/list ([i (in-string "ABCDEFGHIJKLMNOPQRSTUVWXYZ")]
+               [case (in-list '(lower upper))])
+     (cond
+       [(and (equal? case 'upper) (member i (string->list "CHNPQRZ")))
+        (list (format "b~a" i)
+              (match i
+                [#\C "ℂ"]
+                [#\H "ℍ"]
+                [#\N "ℕ"]
+                [#\P "ℙ"]
+                [#\Q "ℚ"]
+                [#\R "ℝ"]
+                [#\Z "ℤ"]))]
+       [else
+        (define bo (match case
+                     ['upper (- (char->integer #\𝔸) (char->integer #\A))]
+                     ['lower (- (char->integer #\𝕒) (char->integer #\A))]))
+        (define co (match case
+                     ['upper 0]
+                     ['lower (- (char->integer #\a) (char->integer #\A))]))
+        (list (format "b~a" (integer->char (+ (char->integer i) co)))
+              (string (integer->char (+ (char->integer i) bo))))]))
+   (for/list ([i (in-inclusive-range 0 9)])
+     (list (format "b~a" i)
+           (string (integer->char (+ (char->integer #\𝟘) i)))))))
 
 (define tex-shortcut-table
   (append
