@@ -306,7 +306,7 @@ added get-regions
     (inherit change-style begin-edit-sequence end-edit-sequence highlight-range
              get-style-list in-edit-sequence? get-start-position get-end-position
              local-edit-sequence? get-styles-fixed has-focus?
-             get-fixed-style get-text)
+             get-fixed-style get-text default-style-name)
     
     (define lexers-all-valid? #t)
     (define/private (update-lexer-state-observers)
@@ -468,7 +468,7 @@ added get-regions
 
     (define/private (color-style->comment-style base-color)
       (let ([d (new style-delta%)]
-            [base-color (or base-color (send (get-style-list) find-named-style "Standard"))])
+            [base-color (or base-color (send (get-style-list) find-named-style (default-style-name)))])
         ;; 50% transparency:
         (send (send d get-foreground-mult) set-a 0.5)
         (and base-color
