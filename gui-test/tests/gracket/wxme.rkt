@@ -19,7 +19,8 @@
          "test-editor-admin.rkt"
          mred/private/wxme/keymap
          mred/private/wxme/editor-snip
-         (for-syntax racket/base))
+         (for-syntax racket/base)
+         (only-in ffi/unsafe void/reference-sink))
 
 (define wrong-cnt 0)
 (define test-cnt 0)
@@ -305,7 +306,8 @@
   (expect (and (pair? changes) (equal? (car changes) #f)) #t)
   (expect (and (member named-style1 changes) #t) #t)
   (expect (and (member named-style2 changes) #t) #t)
-  (set! changes '()))
+  (set! changes '())
+  (void/reference-sink t))
 
 ;; ----------------------------------------
 ;; Lines, positions, paragraphs
