@@ -512,15 +512,18 @@
 
       (define/private (draw-a-line dc dx dy x-in-editor-coordinates x y-start y-end)
         (define by (box 0))
-        (define sp (paragraph-start-position y-start))
-        (position-location sp #f by #t #f #t)
-        (define sy (unbox by))
-        (define ep (paragraph-start-position y-end))
-        (position-location ep #f by #f #f #t)
-        (define ey (unbox by))
-        (send dc draw-line
-              ;; subtract 1 to not overlap the insertion point
-              (+ dx -1 x-in-editor-coordinates)
-              (+ dy sy)
-              (+ dx -1 x-in-editor-coordinates)
-              (+ dy ey (if (= y-end (last-paragraph)) -1 0)))))))
+        (let loop ([y y-start])
+          (when (<= y y-end)
+            (define sp (paragraph-start-position y))
+            (position-location sp #f by #t #f #t)
+            (define sy (unbox by))
+            (define ep (paragraph-start-position y))
+            (position-location ep #f by #f #f #t)
+            (define ey (unbox by))
+            (send dc draw-line
+                  ;; subtract 1 to not overlap the insertion point
+                  (+ dx -1 x-in-editor-coordinates)
+                  (+ dy sy)
+                  (+ dx -1 x-in-editor-coordinates)
+                  (+ dy ey (if (= y (last-paragraph)) -1 0)))
+            (loop (+ y 1))))))))
