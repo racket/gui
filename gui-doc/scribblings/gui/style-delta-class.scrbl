@@ -147,7 +147,7 @@ The family and face settings in a style delta are interdependent:
                        ([change-command (or/c 'change-size
                                               'change-bigger
                                               'change-smaller)]
-                        [v byte?])
+                        [v exact-integer?])
                        ([change-command (or/c 'change-underline
                                               'change-size-in-pixels)]
                         [v any/c]))]{
