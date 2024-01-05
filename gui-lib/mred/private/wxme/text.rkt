@@ -1234,7 +1234,7 @@
                                                             (let* ([newtop (find-scroll-line (+ vy scroll-height))]
                                                                    [y (scroll-line-location (+ newtop 1))]
                                                                    [newtop (if (y . > . (+ vy scroll-height))
-                                                                               (sub1 newtop)
+                                                                               (max 0 (sub1 newtop))
                                                                                newtop)]
                                                                    [y (scroll-line-location newtop)])
                                                               ;; y is the new top location
