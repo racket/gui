@@ -67,8 +67,8 @@
            (send padding-dc set-font (get-style-font))
            (define-values (padding-left padding-top padding-right padding-bottom) (get-padding))
            (define new-padding (text-width padding-dc (number-space+1)))
-           (set-padding new-padding 0 0 0)
            (unless (= padding-left new-padding)
+             (set-padding new-padding 0 0 0)
              (invalidate-bitmap-cache))]
           [else 
            (set-padding 0 0 0 0)]))
@@ -95,7 +95,7 @@
       (define notify-registered-in-list #f)
 
       (define style-change-notify
-        (lambda (style) (unless style (setup-padding))))
+        (lambda (style) (setup-padding)))
 
       (define/private (get-style)
         (let* ([style-list (editor:get-standard-style-list)]
