@@ -1621,9 +1621,13 @@
     (send text begin-edit-sequence)
     (define start (send text get-start-position))
     (define stop (send text get-end-position))
-    (send text insert char start stop)
-    (when (and closer (preferences:get 'framework:automatic-parens))
-      (send text insert closer (+ start 1) (+ start 1)))
+    (cond
+      [(and closer (preferences:get 'framework:automatic-parens))
+       (send text insert closer stop stop)
+       (send text insert char start start)
+       (send text set-position (+ start 1))]
+      [else
+       (send text insert char start stop)])
     (send text end-edit-sequence)))
 
 (define (map-pairs-keybinding-functions keymap opener closer

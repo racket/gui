@@ -880,6 +880,18 @@
         (test-parens-behavior/full (format "~a-~a" (string-append open close) (car s))
                                    before-and-open "" after #\backspace `(,result ,result)))))
 
+  (let ()
+    (define fixup-open-parens (preferences:get 'framework:fixup-open-parens))
+    (define k (new key-event%
+                   [key-code #\[]
+                   [control-down #t]))
+    (preferences:set 'framework:fixup-open-parens #t)
+    (test-parens-behavior/full 'open-parens
+                               "abc" "def" "ghi"  ; editor state: before, selected, after
+                               (list k)           ; key(s) pressed
+                               '(["abc[" "ghi"]   ; result state sep by cursor, no auto-parens
+                                 ["abc[" "def]ghi"])) ; result state with auto-parens
+    (preferences:set 'framework:fixup-open-parens fixup-open-parens))
 
   #| for these, the key-event with meta-down doesn't seem to work... maybe a Mac OS
   issue; and may cause problems with these tests on another platform? .nah. |#
