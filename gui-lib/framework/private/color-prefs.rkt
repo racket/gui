@@ -1038,22 +1038,27 @@
       (if new-wob
           (white-on-black)
           (black-on-white)))
-    (define style-lists-begun
-      (for*/list ([(color-name fns+sls) (in-hash color-change-callbacks)]
-                  [fn+sl (in-list fns+sls)])
-        (define sl/b (cdr fn+sl))
-        (define sl (if (weak-box? sl/b)
-                       (weak-box-value sl/b)
-                       sl/b))
-        (and sl (send sl begin-style-change-sequence) sl)))
-    (for ([(color-name fns+sls) (in-hash color-change-callbacks)])
-      (for ([fn/b (in-list (map car fns+sls))])
-        (define fn (if (weak-box? fn/b) (weak-box-value fn/b) fn/b))
-        (when fn
-          (fn (lookup-in-color-scheme color-name)))))
-    (for ([style-list (in-list style-lists-begun)])
-      (when style-list
-        (send style-list end-style-change-sequence)))))
+    (define style-lists-begun '())
+    (dynamic-wind
+     (λ ()
+       (set! style-lists-begun
+             (for*/list ([(color-name fns+sls) (in-hash color-change-callbacks)]
+                         [fn+sl (in-list fns+sls)])
+               (define sl/b (cdr fn+sl))
+               (define sl (if (weak-box? sl/b)
+                              (weak-box-value sl/b)
+                              sl/b))
+               (and sl (send sl begin-style-change-sequence) sl))))
+     (λ ()
+       (for ([(color-name fns+sls) (in-hash color-change-callbacks)])
+         (for ([fn/b (in-list (map car fns+sls))])
+           (define fn (if (weak-box? fn/b) (weak-box-value fn/b) fn/b))
+           (when fn
+             (fn (lookup-in-color-scheme color-name))))))
+     (λ ()
+       (for ([style-list (in-list style-lists-begun)])
+         (when style-list
+           (send style-list end-style-change-sequence)))))))
 
 (define (get-available-color-schemes) 
   (for/list ([(name a-color-scheme) (in-hash known-color-schemes)])
