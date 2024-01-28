@@ -728,6 +728,27 @@
   (unless (<= 0 count2 (/ N 2))
     (error 'notifications "not weak enough? ~e" count2)))
 
+(let ()
+  (define t (new text%))
+  (define sl (new style-list%))
+  (send t set-style-list sl)
+  (define cb-called? #f)
+  (define (cb s)
+    (set! cb-called? #t)
+    (send sl begin-style-change-sequence)
+    (send sl end-style-change-sequence))
+  (define notification-key (send sl notify-on-change cb))
+  (define b (send sl find-named-style "Basic"))
+  (define b2 (send sl new-named-style "Basic2" b))
+  (send b2 set-delta (make-object style-delta% 'change-bigger 1))
+  (define notification-key2 (send sl notify-on-change cb))
+  (send sl begin-style-change-sequence)
+  (send b2 set-delta (make-object style-delta% 'change-bigger 1))
+  (send sl end-style-change-sequence)
+  (set! cb-called? #f)
+  (send b2 set-delta (make-object style-delta% 'change-bigger 1))
+  (test #t 'style-change-sequence-during-callback-works cb-called?))
+
 ;; ----------------------------------------
 ;; make sure splitting a large string snip works:
 

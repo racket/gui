@@ -8,7 +8,7 @@
                ["base" #:version "8.3.0.3"]
                ["syntax-color-lib" #:version "1.5"]
                ["draw-lib" #:version "1.18"]
-               ["snip-lib" #:version "1.5"]
+               ["snip-lib" #:version "1.6"]
                "wxme-lib"
                "pict-lib"
                "scheme-lib"
