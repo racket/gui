@@ -945,7 +945,7 @@ When an eventspace is created, it is placed under the management of
  can-close?]  or @xmethod[top-level-window<%> on-close]), all timers
  in the eventspace are stopped, and all enqueued callbacks are
  removed.  Attempting to create a new window, timer, or explicitly
- queued event in a shut-down eventspace raises the @racket[exn:misc]
+ queued event in a shut-down eventspace raises the @racket[exn:fail]
  exception.
 
 An eventspace is a @techlink[#:doc reference-doc]{synchronizable
