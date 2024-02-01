@@ -2431,6 +2431,7 @@
           root)))
 
     (define/override (on-activate on?)
+      (super on-activate on?)
       (when on?
         (try-to-update-canvas-in-case-font-size-changed)))
 
