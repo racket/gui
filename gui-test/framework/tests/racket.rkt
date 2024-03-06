@@ -218,12 +218,15 @@
 ;; testing inserting parens and the automatic-parens prefs
 ;;
 
-(define (type-something to-type [control-down #f])
+(define (type-something to-type
+                        #:control-down [control-down #f]
+                        #:stop-colorer? [stop-colorer? #f])
   (define f (new frame:basic% [label ""]))
   (define t (new racket:text%))
   (define ec (new canvas:basic%
                   [parent (send f get-area-container)]
                   [editor t]))
+  (when stop-colorer? (send t stop-colorer))
   (send t on-char (new key-event% [key-code to-type] [control-down control-down]))
   (send t get-text))
 
@@ -235,11 +238,17 @@
   (check-equal? (type-something #\() "(")
   (check-equal? (type-something #\[) "[")
   (check-equal? (type-something #\") "\"")
+  (check-equal? (type-something #\( #:stop-colorer? #t) "(")
+  (check-equal? (type-something #\[ #:stop-colorer? #t) "[")
+  (check-equal? (type-something #\" #:stop-colorer? #t) "\"")
 
   (preferences:set 'framework:automatic-parens #t)
   (check-equal? (type-something #\() "()")
   (check-equal? (type-something #\[) "[]")
   (check-equal? (type-something #\") "\"\"")
+  (check-equal? (type-something #\( #:stop-colorer? #t) "()")
+  (check-equal? (type-something #\[ #:stop-colorer? #t) "[]")
+  (check-equal? (type-something #\" #:stop-colorer? #t) "\"\"")
 
   (preferences:set 'framework:fixup-parens #f)
   (preferences:set 'framework:fixup-open-parens #t)
@@ -247,13 +256,21 @@
   (preferences:set 'framework:automatic-parens #f)
   (check-equal? (type-something #\() "(")
   (check-equal? (type-something #\[) "(")
-  (check-equal? (type-something #\[ #t) "[")
+  (check-equal? (type-something #\[ #:control-down #t) "[")
   (check-equal? (type-something #\") "\"")
+  (check-equal? (type-something #\( #:stop-colorer? #t) "(")
+  (check-equal? (type-something #\[ #:stop-colorer? #t) "[") ;; if the colorer is off, no auto parens
+  (check-equal? (type-something #\[ #:stop-colorer? #t #:control-down #t) "[")
+  (check-equal? (type-something #\" #:stop-colorer? #t) "\"")
   (preferences:set 'framework:automatic-parens #t)
   (check-equal? (type-something #\() "()")
   (check-equal? (type-something #\[) "()")
-  (check-equal? (type-something #\[ #t) "[]")
+  (check-equal? (type-something #\[ #:control-down #t) "[]")
   (check-equal? (type-something #\") "\"\"")
+  (check-equal? (type-something #\( #:stop-colorer? #t) "()")
+  (check-equal? (type-something #\[ #:stop-colorer? #t) "[]") ;; if the colorer is off, no auto parens
+  (check-equal? (type-something #\[ #:stop-colorer? #t #:control-down #t) "[]")
+  (check-equal? (type-something #\" #:stop-colorer? #t) "\"\"")
 
   (preferences:set 'framework:fixup-parens #t)
   (preferences:set 'framework:fixup-open-parens #f)
@@ -262,10 +279,13 @@
   (check-equal? (type-something #\() "(")
   (check-equal? (type-something #\[) "[")
   (check-equal? (type-something #\") "\"")
+  (check-equal? (type-something #\( #:stop-colorer? #t) "(")
+  (check-equal? (type-something #\[ #:stop-colorer? #t) "[")
+  (check-equal? (type-something #\" #:stop-colorer? #t) "\"")
   (preferences:set 'framework:automatic-parens #t)
-  (check-equal? (type-something #\() "()")
-  (check-equal? (type-something #\[) "[]")
-  (check-equal? (type-something #\") "\"\"")
+  (check-equal? (type-something #\( #:stop-colorer? #t) "()")
+  (check-equal? (type-something #\[ #:stop-colorer? #t) "[]")
+  (check-equal? (type-something #\" #:stop-colorer? #t) "\"\"")
 
   (preferences:set 'framework:fixup-parens #t)
   (preferences:set 'framework:fixup-open-parens #t)
@@ -274,10 +294,16 @@
   (check-equal? (type-something #\() "(")
   (check-equal? (type-something #\[) "(")
   (check-equal? (type-something #\") "\"")
+  (check-equal? (type-something #\( #:stop-colorer? #t) "(")
+  (check-equal? (type-something #\[ #:stop-colorer? #t) "[")  ;; if the colorer is off, no auto parens
+  (check-equal? (type-something #\" #:stop-colorer? #t) "\"")
   (preferences:set 'framework:automatic-parens #t)
   (check-equal? (type-something #\() "()")
   (check-equal? (type-something #\[) "()")
-  (check-equal? (type-something #\") "\"\""))
+  (check-equal? (type-something #\") "\"\"")
+  (check-equal? (type-something #\( #:stop-colorer? #t) "()")
+  (check-equal? (type-something #\[ #:stop-colorer? #t) "[]") ;; if the colorer is off, no auto parens
+  (check-equal? (type-something #\" #:stop-colorer? #t) "\"\""))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

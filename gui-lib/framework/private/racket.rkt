@@ -1476,9 +1476,11 @@
   (define open-len (if (string? open-brace) (string-length open-brace) 1))
   (send text begin-edit-sequence #t #f)
   (send text insert open-brace selection-start)
-  (define tok-type (send text classify-position selection-start))
+  (define tok-type (if (send text is-stopped?)
+                       #f
+                       (send text classify-position selection-start)))
   (when (or (not checkp)
-            (and (symbol? checkp) (eq? checkp tok-type))
+            (and (symbol? checkp) (equal? checkp tok-type))
             (and (procedure? checkp) (checkp tok-type)))
     (define hash-before?  ; tweak to detect and correctly close block comments #| ... |#
       ; Notice: This is racket-specific and despite the name of the file we should instead rely
@@ -1507,8 +1509,11 @@
               (= startpos (send text get-end-position)))
          (send text insert open-brace startpos (add1 startpos))
          (send text insert open-brace))]
-
-    [else  ; automatic-parens is enabled
+    ; from here automatic-parens is enabled
+    [(send text is-stopped?)
+     ;; when the colorer is stopped we just blindly insert both
+     (insert-brace-pair text open-brace close-brace)]
+    [else
      (define c (immediately-following-cursor text))
      (define cur-token
        (send text classify-position (send text get-start-position)))
