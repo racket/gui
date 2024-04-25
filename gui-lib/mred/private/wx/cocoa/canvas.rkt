@@ -145,16 +145,16 @@
   (tell (tell NSTextFieldCell alloc) initTextCell: #:type _NSString ""))
 (tellv bezel-cell setBezeled: #:type _BOOL #t)
 
-(define-objc-class FocusView NSView 
+(define-objc-class FocusView NSView
   [on?]
   (-a _void (setFocusState: [_BOOL is-on?])
       (set! on? is-on?))
   (-a #:async-apply (box (void))
       _void (drawRect: [_NSRect r])
       (let ([f (tell #:type _NSRect self frame)])
-        (tellv bezel-cell 
+        (tellv bezel-cell
                drawWithFrame: #:type _NSRect (make-NSRect (make-NSPoint 2 2)
-                                                          (let ([s (NSRect-size r)])
+                                                          (let ([s (NSRect-size f)])
                                                             (make-NSSize (- (NSSize-width s) 4)
                                                                          (- (NSSize-height s) 4))))
                inView: self))
