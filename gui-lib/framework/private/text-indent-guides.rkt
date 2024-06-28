@@ -62,7 +62,21 @@
       ;;       end of the enclosing edit-sequence
       (define recalculate-x-for-guides-after-edit-sequence #f)
 
-      ;; para -o> guide
+      ;; when #t we're going to draw rectangles extending to the right
+      ;; from the guide positions and when #f, we're going to draw
+      ;; guide lines only. Also, when #t we'll calculate the guides
+      ;; slightly differently so that the rectangles end up starting
+      ;; behind the first lines for an indent, not at the first line that
+      ;; whitespace after the new indentation level
+      (define rectangle-mode? #t)
+      (define/public (set-rectangle-mode new-mode?)
+        (unless (equal? rectangle-mode? new-mode?)
+          (set! rectangle-mode? new-mode?)
+          (when guides
+            (set! guides (make-adjustable-skip-list))
+            (recalculate-lines-guides 0 (last-paragraph)))))
+
+      ;; (or/c #f adjustable-skip-list[para -o> guide?])
       (define guides #f)
       (define/public-final (get-guides) guides)
       (define/public-final (show-indent-guides! on?)
@@ -266,7 +280,12 @@
                                      previous-line-guides)
         (define spots-to-consider
           (cond
-            [(= previous-line-indent 0) '()]
+            [(= previous-line-indent 0)
+             (if (= this-line-indent 0)
+                 '()
+                 (if rectangle-mode?
+                     (list this-line-indent)
+                     '()))]
             [(member previous-line-indent previous-line-guides) previous-line-guides]
             [else (append previous-line-guides (list previous-line-indent))]))
         (let loop ([spots-to-consider spots-to-consider])
@@ -274,7 +293,9 @@
             [(null? spots-to-consider) '()]
             [else
              (define spot (car spots-to-consider))
-             (if (<= this-line-indent spot)
+             (if (if rectangle-mode?
+                     (< this-line-indent spot)
+                     (<= this-line-indent spot))
                  '()
                  (cons spot (loop (cdr spots-to-consider))))])))
 
@@ -401,18 +422,39 @@
     
       (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
         (when guides
+          (define lt-position (find-position left top))
+          (define top-para (position-paragraph lt-position))
+          (define lb-position (find-position left bottom))
+          (define bot-para (position-paragraph lb-position))
+          (when before?
+            (when rectangle-mode?
+              (define pen-before (send dc get-pen))
+              (define brush-before (send dc get-brush))
+              (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
+
+              ;; the drawing commands come in a bad order for drawing rectangles
+              ;; so we collect all of them and then draw them in depth order at the end.
+              (define to-draws (make-hash))
+              (draw-the-lines
+               (λ (x-in-editor-coordinates x y-start y-end depth)
+                 (define (to-draw)
+                   (draw-a-box dc dx dy x-in-editor-coordinates x y-start y-end depth))
+                 (hash-set! to-draws depth (cons to-draw (hash-ref to-draws depth '()))))
+               top-para bot-para)
+              (for ([i (in-inclusive-range 0 (apply max 0 (hash-keys to-draws)))])
+                (for ([th (in-list (hash-ref to-draws i '()))])
+                  (th)))
+              (send dc set-brush brush-before)
+              (send dc set-pen pen-before)))
           (unless before?
-            (define pen-before (send dc get-pen))
-            (send dc set-pen (send the-pen-list find-or-create-pen "gray" 1 'solid))
-            (define lt-position (find-position left top))
-            (define top-para (position-paragraph lt-position))
-            (define lb-position (find-position left bottom))
-            (define bot-para (position-paragraph lb-position))
-            (draw-the-lines
-             (λ (x-in-editor-coordinates x y-start y-end)
-               (draw-a-line dc dx dy x-in-editor-coordinates x y-start y-end))
-             top-para bot-para)
-            (send dc set-pen pen-before)))
+            (unless rectangle-mode?
+              (define pen-before (send dc get-pen))
+              (send dc set-pen (send the-pen-list find-or-create-pen "gray" 1 'solid))
+              (draw-the-lines
+               (λ (x-in-editor-coordinates x y-start y-end depth)
+                 (draw-a-line dc dx dy x-in-editor-coordinates x y-start y-end))
+               top-para bot-para)
+              (send dc set-pen pen-before))))
         (super on-paint before? dc left top right bottom dx dy draw-caret))
 
       (define/public (draw-the-lines draw-a-line top-para bot-para)
@@ -464,12 +506,13 @@
         (for ([para (in-range top-para (+ bot-para 1))])
           (define guide (skip-list-ref guides para #f))
           (define new-pending-xs
-            (let loop ([pending-xs pending-xs]
+            (let loop ([depth 0]
+                       [pending-xs pending-xs]
                        [guide-xs (guide-guides guide)])
               (cond
                 [(null? guide-xs)
                  ;; the remaining pending-xs have ended, draw the actual lines
-                 (draw-ended-pending-xs draw-a-line pending-xs pending-lines (- para 1))
+                 (draw-ended-pending-xs depth draw-a-line pending-xs pending-lines (- para 1))
                  '()]
                 [(null? pending-xs)
                  ;; the remaining guide-xs are new lines starting
@@ -487,27 +530,30 @@
                                           #:mode 'write)
                            "\n  ")))
                  (when (pair? guide-xs)
-                   (define x (guide-x (skip-list-ref guides (- para 1))))
+                   (define x (guide-x (if rectangle-mode?
+                                          guide
+                                          (skip-list-ref guides (- para 1)))))
                    (hash-set! pending-lines (car guide-xs) (cons x para)))
                  guide-xs]
                 [else
                  (unless (= (car pending-xs) (car guide-xs))
                    (error 'text-indent-guides.rkt::internal-error
-                          "pending-xs started with ~a but guide-xs started with ~a"
-                          (car pending-xs)
-                          (car guide-xs)))
-                 (cons (car pending-xs) (loop (cdr pending-xs) (cdr guide-xs)))])))
+                          "pending-xs and guide-xs starts are different\n  pending-xs: ~s\n  guide-xs: ~s"
+                          pending-xs
+                          guide-xs))
+                 (cons (car pending-xs) (loop (+ depth 1) (cdr pending-xs) (cdr guide-xs)))])))
           (set! pending-xs new-pending-xs))
         ;; here all of the remainding pending lines have finished (possibly because
         ;; we're redrawing only a portion the screen), so draw them.
-        (draw-ended-pending-xs draw-a-line pending-xs pending-lines bot-para))
+        (draw-ended-pending-xs 0 draw-a-line pending-xs pending-lines bot-para))
 
-      (define/private (draw-ended-pending-xs draw-a-line finished-xs pending-lines para)
-        (for ([finished-x (in-list finished-xs)])
+      (define/private (draw-ended-pending-xs depth draw-a-line finished-xs pending-lines para)
+        (for ([finished-x (in-list finished-xs)]
+              [depth (in-naturals depth)])
           (match-define (cons x-in-editor-coordinates y-start) (hash-ref pending-lines finished-x))
           ;; this line no longer has the guide, end at the previous para
           (define line-to-start-drawing-at y-start)
-          (draw-a-line x-in-editor-coordinates finished-x line-to-start-drawing-at para)
+          (draw-a-line x-in-editor-coordinates finished-x line-to-start-drawing-at para depth)
           (hash-remove! pending-lines finished-x)))
 
       (define/private (draw-a-line dc dx dy x-in-editor-coordinates x y-start y-end)
@@ -526,4 +572,20 @@
                   (+ dy sy)
                   (+ dx -1 x-in-editor-coordinates)
                   (+ dy ey (if (= y (last-paragraph)) -1 0)))
-            (loop (+ y 1))))))))
+            (loop (+ y 1)))))
+
+      (define/private (draw-a-box dc dx dy x-in-editor-coordinates x y-start y-end depth)
+        (define by (box 0))
+        (define sp (paragraph-start-position y-start))
+        (position-location sp #f by #t #f #t)
+        (define sy (unbox by))
+        (define ep (paragraph-start-position y-end))
+        (position-location ep #f by #f #f #t)
+        (define ey (unbox by))
+        (define c (round (* 255 (- 1 (* 1/3 (min 1 (/ (+ depth 1) 5)))))))
+        (send dc set-brush (make-object color% c c c) 'solid)
+        (send dc draw-rectangle
+              (+ dx x-in-editor-coordinates)
+              (+ dy sy)
+              1000
+              (- ey sy))))))
