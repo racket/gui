@@ -492,8 +492,10 @@
                   output-chars)
   ; get the number of characters returned, and convert to string
   (define n (max 0 (min max-string-length (unbox actual-string-length))))
-  (list->string (for/list ([i (in-range n)]) 
-                  (integer->char (ptr-ref output-chars _UniChar i)))))
+  (list->string (for/list ([i (in-range n)]
+                           #:do [(define c (ptr-ref output-chars _UniChar i))]
+                           #:when (not (<= #xD800 c #xDFFF)))
+                  (integer->char c))))
 
 ;;;
 ;;; Conversions back and forth between characters and key codes.
