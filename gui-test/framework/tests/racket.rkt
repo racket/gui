@@ -4,6 +4,7 @@
          rackunit
          racket/class
          framework
+         framework/private/color-local-member-name
          racket/gui/base)
 
 (module+ test
@@ -12,6 +13,7 @@
     (test-get-matching-paren-string)
     (open-paren-typing)
     (test-text-balanced)
+    (test-highlighting)
     (indentation-tests)
     (magic-square-bracket-tests)
     (insert-return-tests)
@@ -330,6 +332,39 @@
   (check-equal? (text-balanced? "(foo]" 0 #f) #t)
   (check-equal? (text-balanced? "{foo} ((bar) [5.9])" 0 #f) #t)
   (check-equal? (text-balanced? "#(1 2 . 3)" 0 #f) #t))
+
+(define (test-highlighting)
+  (preferences:set 'framework:paren-color-scheme 'shades-of-gray)
+  (define t (new racket:text%))
+  (define f (new frame% [label ""] [width 600] [height 600]))
+  (define ec (new editor-canvas% [parent f] [editor t]))
+  (send f reflow-container)
+  (send t freeze-colorer)
+
+  (define (check-parens str pos)
+    (send t thaw-colorer)
+    (send t erase)
+    (send t insert str)
+    (send t set-position pos)
+    (send t freeze-colorer)
+    (send t match-parens)
+    (sort
+     (for/list ([r (in-list (send t get-highlighted-ranges))])
+       (list (text:range-start r)
+             (text:range-end r)))
+     range<?))
+
+  (define (range<? r1 r2)
+    (cond
+      [(= (list-ref r1 0) (list-ref r2 0))
+       (< (list-ref r1 1) (list-ref r2 1))]
+      [else
+       (< (list-ref r1 0) (list-ref r2 0))]))
+
+  (check-equal? (check-parens "x" 0) '())
+  (check-equal? (check-parens "()" 0) '((0 2)))
+  (check-equal? (check-parens "(())" 0) '((0 4) (1 3)))
+  (check-equal? (check-parens "( () () )" 0) '((0 9) (2 4) (5 7))))
 
 (define (test-indentation before)
   (define t (new racket:text%))
