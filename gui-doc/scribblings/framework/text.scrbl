@@ -28,11 +28,17 @@
     reflected in the highlighted range.
 
     If the style is @racket['rectangle] (the default), then the highlighted region
-    is drawn as a rectangle.
+    is drawn as a rectangle, highlighting all of the text between the start and end.
     If the style is @racket['ellipse], then an ellipse is drawn around the range
     in the editor, using the color.  If the style is @racket['hollow-ellipse],
     then the outline of an ellipse is drawn around the range in the editor,
     using the color.
+    If the style is @racket['single-rectangle] then a rectangle whose upper-left
+    corner is the starting position of the range and whose lower-right corner is
+    the ending position of the range; this may not highlight some of the text in the
+    range, as the first and last position may be in different paragraphs and
+    the intermediate paragraphs may be wider than the distance from the start to
+    the end.
     If the style is @racket['dot], then @racket[start] and @racket[end] must be
     the same, and a dot is drawn at the bottom of that position in the editor.
 

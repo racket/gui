@@ -257,6 +257,10 @@
                 (loop (min (unbox b1) (unbox b2) l)
                       (max (unbox b1) (unbox b2) r)
                       (+ line 1))]))]
+          [(equal? style 'single-rectangle)
+           (list (build-rectangle (min start-x end-x) top-start-y
+                                  (max start-x end-x) bottom-end-y
+                                  style color))]
           [else
            (list (build-rectangle start-x top-start-y
                                   'right-edge bottom-start-y
@@ -343,9 +347,9 @@
                   "            where the string is mapped in `the-color-database`\n"
                   "  third argument: ~e")
                  in-color))
-        (unless (memq style '(rectangle hollow-ellipse ellipse dot))
+        (unless (memq style '(rectangle single-rectangle hollow-ellipse ellipse dot))
           (error 'highlight-range
-                 "expected one of 'rectangle, 'ellipse 'hollow-ellipse, or 'dot as the style, got ~e"
+                 "expected one of 'rectangle, 'single-rectangle, 'ellipse 'hollow-ellipse, or 'dot as the style, got ~e"
                  style))
         (when (eq? style 'dot)
           (unless (= start end)
@@ -511,7 +515,7 @@
                            (+ dy top (- hollow-ellipse-embiggen))
                            (+ width (+ hollow-ellipse-embiggen hollow-ellipse-embiggen))
                            (+ height (+ hollow-ellipse-embiggen hollow-ellipse-embiggen)))]
-                    [(rectangle)
+                    [(rectangle single-rectangle)
                      (send dc set-pen color 1 'transparent)
                      (send dc set-brush color 'solid)
                      (send dc draw-rectangle (+ left dx) (+ top dy) width height)]
