@@ -354,6 +354,17 @@
              (text:range-end r)))
      range<?))
 
+  ;; useful for testing invisible parens
+  (define (check-shrub-parens str pos)
+    (define prefix "#lang shrubbery\n")
+    (define pl (string-length prefix))
+    (define res
+      (check-parens (string-append prefix str)
+                    (+ pos pl)))
+    (for/list ([item (in-list res)])
+      (list (- (list-ref item 0) pl)
+            (- (list-ref item 1) pl))))
+
   (define (range<? r1 r2)
     (cond
       [(= (list-ref r1 0) (list-ref r2 0))
@@ -364,7 +375,11 @@
   (check-equal? (check-parens "x" 0) '())
   (check-equal? (check-parens "()" 0) '((0 2)))
   (check-equal? (check-parens "(())" 0) '((0 4) (1 3)))
-  (check-equal? (check-parens "( () () )" 0) '((0 9) (2 4) (5 7))))
+  (check-equal? (check-parens "( () () )" 0) '((0 9) (2 4) (5 7)))
+  (check-equal? (check-shrub-parens "1+2" 0) '((0 3)))
+  (check-equal? (check-shrub-parens " 1+2\n 3+4" 1) '((1 4) (1 9) (6 9)))
+  (check-equal? (check-shrub-parens " 1+2\n 3+4" 4) '((1 4)))
+  (check-equal? (check-shrub-parens "block:\n 1+2\n 3+4" 0) '((0 16) (8 11) (8 16) (13 16))))
 
 (define (test-indentation before)
   (define t (new racket:text%))

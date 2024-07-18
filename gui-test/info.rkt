@@ -19,7 +19,8 @@
                      "sandbox-lib"
                      "simple-tree-text-markup-lib"
                      "pict-lib"
-                     "pict-snip-lib"))
+                     "pict-snip-lib"
+                     "shrubbery-lib"))
 (define update-implies '("gui-lib"))
 
 (define pkg-desc "tests for \"gui\"")
