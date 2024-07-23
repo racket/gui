@@ -828,7 +828,8 @@ added get-regions
     ;;   if color is a color-prefs:color-scheme-color-name?, ditto
     ;;   Otherwise, it must be a boolean, where #t
     ;;   means the normal paren color and #f means an error color. 
-    ;; numbers are expected to have zero be start-pos.
+    ;; start and end expected to have zero be start-pos, that is, relative
+    ;;   to the starting position of `ls`
     (define/private (highlight ls start end caret-pos color [priority 'low])
       (let* ([start-pos (lexer-state-start-pos ls)]
              [off (highlight-range (+ start-pos start) (+ start-pos end)
@@ -911,13 +912,13 @@ added get-regions
                        (cond
                          [(zero? opens)
                           ;; if we don't find a match to the close where we started,
-                          ;; just try all of the opens here (not sure that this
-                          ;; should ever happen)
+                          ;; just try all of the opens here (which might be because
+                          ;; there are no invisible opens here at all)
                           #f]
                          [else
                           (define-values (start-pos end-pos is-error)
                             (send (lexer-state-parens ls) match-forward
-                                  (- start-b (lexer-state-start-pos ls))
+                                  start-b
                                   #:invisible opens))
                           (cond
                             [(and (not is-error) (equal? end-pos end-b)) opens]
@@ -928,12 +929,16 @@ added get-regions
     
     ;; highlight-nested-region : lexer-state number number number -> void
     ;; colors nested regions of parentheses.
+    ;;
+    ;; coordinates of orig-start and orig-end are relative to the start of `ls`, so use, eg,
+    ;; (+ orig-start (lexer-state-start-pos ls)) to get coordinates in the text object
     (define/private (highlight-nested-region ls orig-start orig-end caret-pos opens-to-start)
       (define priority (get-parenthesis-priority))
       (define paren-colors (get-parenthesis-colors))
 
       ;; this goes over a range at a specific depth, highlighting
       ;; of the the parens it finds at that depth and calling `single-spot-loop` to go deeper inside
+      ;; start and end are lexer-state coordinates (like orig-start argument to highlight-nested-region)
       (define (seq-loop start end depth)
         (when start
           (when (< depth (vector-length paren-colors))
@@ -941,7 +946,7 @@ added get-regions
             (let loop ([start start])
               (when (< start end)
                 (define afterwards (or (single-spot-loop start depth #f)
-                                       (skip-past-token ls start)))
+                                       (skip-past-token/ls-relative ls start)))
                 (when afterwards
                   (loop afterwards)))))))
 
@@ -964,18 +969,19 @@ added get-regions
       ;; above, we'll recur with depth+1 to handle depth 3 (and eventually
       ;; depth 4) and then use `seq-loop` to go over the region with the 2s
       ;; underneath it, between the last two parens.
+      ;; start is in lexer-state coordinates (like orig-start argument to highlight-nested-region)
       (define (single-spot-loop start depth opens-to-start)
         (define-values (invisible-paren-opens invisible-paren-closes)
-          (send (lexer-state-parens ls) get-invisible-count
-                (- start (lexer-state-start-pos ls))))
+          (send (lexer-state-parens ls) get-invisible-count start))
         (cond
           [(or (not (zero? invisible-paren-opens))
                (not (zero? invisible-paren-closes))
-               (send (lexer-state-parens ls) is-open-pos? (- start (lexer-state-start-pos ls))))
+               (send (lexer-state-parens ls) is-open-pos? start))
            (define invisible-paren-count (+ (or opens-to-start invisible-paren-opens)
                                             invisible-paren-closes))
            (define-values (outermost-start outermost-end error-outermost)
-             (send (lexer-state-parens ls) match-forward (- start (lexer-state-start-pos ls)) #:invisible invisible-paren-count))
+             (send (lexer-state-parens ls) match-forward start #:invisible invisible-paren-count))
+           (define ls-start (lexer-state-start-pos ls))
            (cond
              [(and outermost-start (not error-outermost))
               (let loop ([invisible-paren-count invisible-paren-count]
@@ -987,30 +993,30 @@ added get-regions
                   (cond
                     [(zero? invisible-paren-count)
                      (define-values (start-inner end-inner error-inner)
-                       (send (lexer-state-parens ls) match-forward (- start (lexer-state-start-pos ls))))
+                       (send (lexer-state-parens ls) match-forward start))
                      (when (or (not (zero? invisible-paren-opens))
                                (not (zero? invisible-paren-closes))
                                start-inner)
                        (cond
                          [start-inner
-                          (seq-loop (skip-past-token ls start-inner) (- end-inner 1) (+ depth 1))
-                          (seq-loop (skip-past-token ls end-inner) (- end-position 1) depth)]
+                          (seq-loop (skip-past-token/ls-relative ls start-inner) (- end-inner 1) (+ depth 1))
+                          (seq-loop (skip-past-token/ls-relative ls end-inner) (- end-position 1) depth)]
                          [else
-                          (seq-loop (skip-past-token ls outermost-start) (- end-position 1) depth)]))
+                          (seq-loop (skip-past-token/ls-relative ls  ls-start) (- end-position 1) depth)]))
                      (unless error-inner
                        (when (and start-inner end-inner)
                          (highlight ls start-inner end-inner caret-pos color priority)))]
                     [else
                      (define-values (start-inner end-inner error-inner)
                        (send (lexer-state-parens ls) match-forward
-                             (- start (lexer-state-start-pos ls))
+                             start
                              #:invisible invisible-paren-count))
                      (unless error-inner
                        (cond
                          [(equal? enclosing-highlight (cons start-inner end-inner))
                           (loop (- invisible-paren-count 1) end-inner depth enclosing-highlight)]
                          [start-inner
-                          (seq-loop (skip-past-token ls end-inner) (- end-position 1) depth)
+                          (seq-loop (skip-past-token/ls-relative ls end-inner) (- end-position 1) depth)
                           (loop (- invisible-paren-count 1) end-inner (+ depth 1) (cons start-inner end-inner))
                           (highlight ls start-inner end-inner caret-pos color priority)]
                          [else
@@ -1050,19 +1056,19 @@ added get-regions
                 (skip-past-token ls position))))))))
     
     (define/private (skip-past-token ls position)
-      (let-values (((tok-start tok-end)
-                    (begin
-                      (tokenize-to-pos ls position)
-                      (send (lexer-state-tokens ls) search! 
-                            (- position (lexer-state-start-pos ls)))
-                      (values (send (lexer-state-tokens ls) get-root-start-position)
-                              (send (lexer-state-tokens ls) get-root-end-position)))))
-        (cond
-          ((or (send (lexer-state-parens ls) is-close-pos? tok-start)
-               (= (+ (lexer-state-start-pos ls) tok-end) position))
-           #f)
-          (else
-           (+ (lexer-state-start-pos ls) tok-end)))))
+      (define pos (skip-past-token/ls-relative ls position))
+      (and pos (+ pos (lexer-state-start-pos ls))))
+
+    (define/private (skip-past-token/ls-relative ls position)
+      (tokenize-to-pos ls (+ (lexer-state-start-pos ls) position))
+      (send (lexer-state-tokens ls) search! position)
+      (define tok-start (send (lexer-state-tokens ls) get-root-start-position))
+      (define tok-end (send (lexer-state-tokens ls) get-root-end-position))
+      (cond
+        [(or (send (lexer-state-parens ls) is-close-pos? tok-start)
+             (= tok-end position))
+         #f]
+        [else tok-end]))
     
     ;; See docs
     (define/public (backward-match position cutoff)
