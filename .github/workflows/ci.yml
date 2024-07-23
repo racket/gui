@@ -21,7 +21,6 @@ jobs:
         distribution: 'minimal'
         variant: ${{ matrix.variant }}
         version: 'current'
-        snapshot_site: 'utah'
     - name: Install and setup
       run: |
         raco pkg install --auto compiler-lib
