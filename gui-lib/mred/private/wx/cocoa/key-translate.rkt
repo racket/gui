@@ -426,7 +426,7 @@
 
 ;; The strings used to store output from UCKeyTranslate is only allocated once:
 (define max-string-length 255) 
-(define output-chars (malloc _UniChar max-string-length))
+(define output-chars (malloc _UniChar (add1 max-string-length))) ; leave room for a terminator
 
 ;; Dead key state
 ;    A pointer to an unsigned 32-bit value, initialized to zero. 
@@ -490,10 +490,11 @@
                   max-string-length
                   actual-string-length
                   output-chars)
-  ; get the number of characters returned, and convert to string
+  ;; get the number of characters returned, and convert to string;
+  ;; the characters are UTF-16
   (define n (max 0 (min max-string-length (unbox actual-string-length))))
-  (list->string (for/list ([i (in-range n)]) 
-                  (integer->char (ptr-ref output-chars _UniChar i)))))
+  (ptr-set! output-chars _UniChar n 0) ; ensure nul terminator
+  (cast output-chars _pointer _string/utf-16))
 
 ;;;
 ;;; Conversions back and forth between characters and key codes.
