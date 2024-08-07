@@ -886,11 +886,13 @@ added get-regions
           (define caret-pos (get-start-position))
           (when (= caret-pos (get-end-position))
             (define ls (find-ls caret-pos))
+            (define consider-invisible-parens?
+              (not (= 1 (vector-length (get-parenthesis-colors)))))
             (when ls
               (define-values (start-f end-f error-f)
                 (send (lexer-state-parens ls) match-forward 
                       (- caret-pos (lexer-state-start-pos ls))
-                      #:invisible 'all))
+                      #:invisible (if consider-invisible-parens? 'all #f)))
               (when (and (not (f-match-false-error ls start-f end-f error-f))
                          start-f end-f)
                 (if error-f
@@ -899,7 +901,7 @@ added get-regions
               (define-values (start-b end-b error-b)
                 (send (lexer-state-parens ls) match-backward 
                       (- caret-pos (lexer-state-start-pos ls))
-                      #:invisible 'all))
+                      #:invisible (if consider-invisible-parens? 'all #f)))
               (when (and start-b end-b)
                 (cond
                   [error-b
@@ -908,7 +910,7 @@ added get-regions
                    (define-values (total-opens total-closes)
                      (send (lexer-state-parens ls) get-invisible-count start-b))
                    (define opens
-                     (let loop ([opens total-opens])
+                     (let loop ([opens (if consider-invisible-parens? total-opens 0)])
                        (cond
                          [(zero? opens)
                           ;; if we don't find a match to the close where we started,
