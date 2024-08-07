@@ -1002,7 +1002,7 @@ added get-regions
                           (seq-loop (skip-past-token/ls-relative ls start-inner) (- end-inner 1) (+ depth 1))
                           (seq-loop (skip-past-token/ls-relative ls end-inner) (- end-position 1) depth)]
                          [else
-                          (seq-loop (skip-past-token/ls-relative ls  ls-start) (- end-position 1) depth)]))
+                          (seq-loop (skip-past-token/ls-relative ls start) (- end-position 1) depth)]))
                      (unless error-inner
                        (when (and start-inner end-inner)
                          (highlight ls start-inner end-inner caret-pos color priority)))]

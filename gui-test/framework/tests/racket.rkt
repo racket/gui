@@ -379,7 +379,8 @@
   (check-equal? (check-shrub-parens "1+2" 0) '((0 3)))
   (check-equal? (check-shrub-parens " 1+2\n 3+4" 1) '((1 4) (1 9) (6 9)))
   (check-equal? (check-shrub-parens " 1+2\n 3+4" 4) '((1 4)))
-  (check-equal? (check-shrub-parens "block:\n 1+2\n 3+4" 0) '((0 16) (8 11) (8 16) (13 16))))
+  (check-equal? (check-shrub-parens "block:\n 1+2\n 3+4" 0) '((0 16) (8 11) (8 16) (13 16)))
+  (check-equal? (check-shrub-parens "1+2\n\n3+4" 5) '((5 8))))
 
 (define (test-indentation before)
   (define t (new racket:text%))
