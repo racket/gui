@@ -213,6 +213,8 @@
                        (file-or-directory-modify-seconds filename))))))
 
       (set! can-save-file-filename #f)
+
+      (handler:update-currently-open-files)
       (inner (void) after-save-file success?))
       
     (define/augment (after-load-file success?)
@@ -223,7 +225,8 @@
           (set! last-saved-file-time
                 (and filename
                      (file-exists? filename)
-                     (file-or-directory-modify-seconds filename)))))
+                     (file-or-directory-modify-seconds filename))))
+        (handler:update-currently-open-files))
       (inner (void) after-load-file success?))
       
     (define/public (save-file-out-of-date?)
@@ -688,6 +691,7 @@
 
     (define/augment (on-close)
       (remove-autosave)
+      (handler:update-currently-open-files)
       (set! do-autosave? #f)
       (inner (void) on-close))
     (define/augment (on-change)

@@ -77,6 +77,13 @@
 
     Returns @racket[#f].
   }
+ @defmethod[(get-all-open-files) (listof path?)]{
+  Indicates the files that are currently open in this frame.
+
+  Returns @racket['()].
+
+  @history[#:added "1.74"]
+ }
   @defmethod*[(((get-filename (temp (or/c #f (box boolean?)) #f)) (or/c #f path?)))]{
     This returns the filename that the frame is currently being saved as,
     or @racket[#f] if there is no appropriate filename.
@@ -607,9 +614,15 @@
     @method[frame:editor<%> get-editor].
   }
 
-  @defmethod*[#:mode override (((editing-this-file? (filename path?)) boolean?))]{
+  @defmethod[#:mode override (editing-this-file? [filename path?]) boolean?]{
     Returns @racket[#t] if the filename is the file that this frame is editing.
   }
+
+ @defmethod[#:mode override (get-all-open-files) (listof path?)]{
+  Returns a list of all the paths for files that are open in this frame.
+
+  @history[#:added "1.74"]
+ }
 
   @defmethod*[#:mode augment (((on-close) void?))]{
     Calls the @racket[editor:basic<%>]'s method @method[editor:basic<%>

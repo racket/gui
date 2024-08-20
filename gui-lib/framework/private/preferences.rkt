@@ -567,6 +567,31 @@ the state transitions / contracts are:
                                (cadr current)))))
   (update-tf-bkg))
 
+(define (add-boolean-option-with-ask-me parent label option1 option2 pref-key)
+  (define rb
+    (new radio-box%
+         [label label]
+         [parent parent]
+         [choices (list option1
+                        option2
+                        (string-constant ask-me-each-time))]
+         [callback
+          (λ (rb evt)
+            (preferences:set pref-key
+                             (case (send rb get-selection)
+                               [(0) #t]
+                               [(1) #f]
+                               [(2) 'ask])))]))
+  (define (update-rb what)
+    (send rb set-selection
+          (case what
+            [(#t) 0]
+            [(#f) 1]
+            [(ask) 2])))
+  (update-rb (preferences:get pref-key))
+  (preferences:add-callback pref-key (λ (p v) (update-rb v)))
+  (void))
+
 (define (add-general-checkbox-panel) (add-general-checkbox-panel/real))
 (define (add-general-checkbox-panel/real)
   (set! add-general-checkbox-panel/real void)
@@ -579,28 +604,12 @@ the state transitions / contracts are:
                 (string-constant backup-unsaved-files))
      (add-check editor-panel 'framework:backup-files? (string-constant first-change-files))
 
-     (define auto-load-rb
-       (new radio-box%
-            [label (string-constant autoload-automatically-reload)]
-            [parent editor-panel]
-            [choices (list (string-constant autoload-when-the-editor-isnt-dirty)
-                           (string-constant autoload-never-revert)
-                           (string-constant autoload-ask-about-reverting))]
-            [callback
-             (λ (rb evt)
-               (preferences:set 'framework:autoload
-                                (case (send rb get-selection)
-                                  [(0) #t]
-                                  [(1) #f]
-                                  [(2) 'ask])))]))
-     (define (update-auto-load-rb what)
-       (send auto-load-rb set-selection
-             (case what
-               [(#t) 0]
-               [(#f) 1]
-               [(ask) 2])))
-     (update-auto-load-rb (preferences:get 'framework:autoload))
-     (preferences:add-callback 'framework:autoload (λ (p v) (update-auto-load-rb v)))
+     (add-boolean-option-with-ask-me
+      editor-panel
+      (string-constant autoload-automatically-reload)
+      (string-constant autoload-when-the-editor-isnt-dirty)
+      (string-constant autoload-never-revert)
+      'framework:autoload)
 
      (unless (equal? (system-type) 'unix)
        (define (bool->pref b) (if b 'std 'common))

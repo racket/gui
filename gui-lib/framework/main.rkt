@@ -451,6 +451,20 @@
   @{Adds a font selection preferences panel to the preferences dialog.})
 
  (proc-doc/names
+  preferences:add-boolean-option-with-ask-me
+  (-> (or/c (is-a?/c area-container<%>) #f)
+      string?
+      string?
+      string?
+      symbol?
+      void?)
+  (parent label option1 option2 pref-key)
+
+  @{Adds a checkbox to @racket[parent] with three options; the first two are given by @racket[option1] and @racket[option2], and
+the third is "Ask me". The preference named by@racket[pref-key] is updated based on the selection in the checkbox.
+})
+
+ (proc-doc/names
   preferences:show-dialog
   (-> void?)
   ()

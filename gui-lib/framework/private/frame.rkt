@@ -186,6 +186,8 @@
         [(b) #f]))
     
     (define/public (editing-this-file? filename) #f)
+
+    (define/public (get-all-open-files) '())
     
     (define/override (on-superwindow-show shown?)
       (send (group:get-the-frame-group) frame-shown/hidden this)
@@ -510,7 +512,8 @@
     (define/override (on-activate on?)
       (super on-activate on?)
       (when on?
-        (send (group:get-the-frame-group) set-active-frame this)))
+        (send (group:get-the-frame-group) set-active-frame this))
+      (handler:update-currently-open-files))
     
     (super-new)
     (send (group:get-the-frame-group) insert-frame this)))
@@ -1449,6 +1452,10 @@
         (let ([this-fn (get-filename)])
           (and this-fn
                (path-equal? filename (get-filename))))))
+
+    (define/override (get-all-open-files)
+      (with-handlers ((exn:fail? (λ (x) '())))
+        (list (normalize-path (get-filename)))))
     
     (define/augment (on-close)
       (send (get-editor) on-close)

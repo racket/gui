@@ -27,6 +27,11 @@
 
 (application-preferences-handler (λ () (preferences:show-dialog)))
 
+(preferences:set-default 'framework:last-opened-files '() (listof (listof path?)))
+(preferences:set-un/marshall 'framework:last-opened-files
+                             (λ (x) (map (λ (x) (map path->bytes x)) x))
+                             (λ (x) (map (λ (x) (map bytes->path x)) x)))
+
 (preferences:set-default 'framework:caret-blink-disable? #f boolean?)
 
 (preferences:set-default 'framework:editor-x-selection-mode #t boolean?)

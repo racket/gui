@@ -10,6 +10,7 @@
          string-constants)
 
 (import mred^
+        [prefix exit: framework:exit^]
         [prefix finder: framework:finder^]
         [prefix group: framework:group^]
         [prefix frame: framework:frame^])
@@ -125,6 +126,13 @@
   (define new-recent (size-down added-in
                                 (preferences:get 'framework:recent-max-count)))
   (preferences:set 'framework:recently-opened-files/pos new-recent))
+
+(define (update-currently-open-files)
+  (unless (exit:exiting?)
+    (preferences:set
+     'framework:last-opened-files
+     (send (group:get-the-frame-group)
+           get-all-open-files))))
 
 ;; same-enough-path? : path path -> boolean
 ;; used to determine if the open-recent-files menu item considers two paths to be the same

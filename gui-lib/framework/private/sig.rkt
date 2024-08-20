@@ -111,7 +111,7 @@
      add-can-close-dialog-callback
      
      add-check
-     
+     add-boolean-option-with-ask-me
      show-dialog
      hide-dialog))
   
@@ -289,6 +289,7 @@
      open-file
      install-recent-items
      add-to-recent
+     update-currently-open-files ;; not provided outside of the unit
      set-recent-position
      set-recent-items-frame-superclass
      size-recently-opened-files))

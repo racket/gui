@@ -74,6 +74,7 @@
     make-root-area-container
     close
     editing-this-file?
+    get-all-open-files
     get-filename
     make-visible))
 

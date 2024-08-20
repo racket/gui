@@ -263,6 +263,13 @@
                  (if (test-frame frame)
                      frame
                      (loop (cdr frames))))]))))
+
+      (define/public (get-all-open-files)
+        (define the-frames (map frame-frame frames))
+        (when (member active-frame the-frames)
+          (set! the-frames (cons active-frame (remove active-frame the-frames))))
+        (for/list ([frame (in-list the-frames)])
+          (send frame get-all-open-files)))
       
       (super-new)))
 
