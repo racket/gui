@@ -1095,6 +1095,20 @@ was never saved, then the first element of the list is @racket[#f].
     length to @racket[num].})
 
  (proc-doc/names
+  handler:update-currently-open-files
+  (-> void?)
+  ()
+
+  @{
+This is called when new files are opened or when files
+are closed or when the frontmost window changes. As long as the app
+is not currently exiting, it updates the
+preference with the key @racket['framework:last-opened-files] to
+hold a list of list of paths, to record the lists of files that
+are currently open in tabs.
+})
+
+ (proc-doc/names
   icon:get-paren-highlight-bitmap
   (-> (is-a?/c bitmap%))
   ()

@@ -289,7 +289,7 @@
      open-file
      install-recent-items
      add-to-recent
-     update-currently-open-files ;; not provided outside of the unit
+     update-currently-open-files
      set-recent-position
      set-recent-items-frame-superclass
      size-recently-opened-files))
