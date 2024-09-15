@@ -165,7 +165,7 @@
     (connect-end-print op-gtk)
 
     (gtk_print_operation_set_n_pages op-gtk (length pages))
-    (gtk_print_operation_set_allow_async op-gtk #t)
+    (gtk_print_operation_set_allow_async op-gtk #f)
     (gtk_print_operation_set_default_page_setup op-gtk page-setup)
 
     (define done-sema (make-semaphore))
