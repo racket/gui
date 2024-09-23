@@ -58,6 +58,36 @@
 
 (define app (tell NSApplication sharedApplication))
 
+;; ------------------------------------------------------------
+;; Create an event to post when Racket has been sleeping but is
+;;  ready to wake up
+
+(import-class NSEvent)
+(define wake-evt
+  (tell NSEvent
+        otherEventWithType: #:type _NSUInteger NSApplicationDefined
+        location: #:type _NSPoint (make-NSPoint 0.0 0.0)
+        modifierFlags: #:type _NSUInteger 0
+        timestamp: #:type _double 0.0
+        windowNumber: #:type _NSUInteger 0
+        context: #:type _pointer #f
+        subtype: #:type _short 0
+        data1: #:type _NSInteger 0
+        data2: #:type _NSInteger 0))
+(retain wake-evt)
+(define (post-dummy-event)
+  (tell #:type _void app postEvent: wake-evt atStart: #:type _BOOL YES))
+
+;; This callback will be invoked by the CoreFoundation run loop
+;; when data is available on `ready_sock', which is used to indicate
+;; that Racket would like to wake up (and posting a Cocoa event
+;; causes the event-getting function to unblock).
+(define (socket_callback)
+  (read2 ready_sock read-buf 1)
+  (post-dummy-event))
+
+;; ------------------------------------------------------------
+
 (define got-file? #f)
 
 (define-objc-class RacketApplicationDelegate NSObject ;; note: NSApplicationDelegate doesn't exist at run time
@@ -222,34 +252,6 @@
                                                      NSActivityIdleSystemSleepDisabled)
          reason: #:type _NSString "Racket default")
    retain))
-
-;; ------------------------------------------------------------
-;; Create an event to post when Racket has been sleeping but is
-;;  ready to wake up
-
-(import-class NSEvent)
-(define wake-evt
-  (tell NSEvent 
-        otherEventWithType: #:type _NSUInteger NSApplicationDefined
-        location: #:type _NSPoint (make-NSPoint 0.0 0.0)
-        modifierFlags: #:type _NSUInteger 0 
-        timestamp: #:type _double 0.0
-        windowNumber: #:type _NSUInteger 0
-        context: #:type _pointer #f
-        subtype: #:type _short 0
-        data1: #:type _NSInteger 0
-        data2: #:type _NSInteger 0))
-(retain wake-evt)
-(define (post-dummy-event)
-  (tell #:type _void app postEvent: wake-evt atStart: #:type _BOOL YES))
-
-;; This callback will be invoked by the CoreFoundation run loop
-;; when data is available on `ready_sock', which is used to indicate
-;; that Racket would like to wake up (and posting a Cocoa event
-;; causes the event-getting function to unblock).
-(define (socket_callback)
-  (read2 ready_sock read-buf 1)
-  (post-dummy-event))
 
 ;; ------------------------------------------------------------
 ;; Create a pipe's pair of file descriptors, used to communicate
