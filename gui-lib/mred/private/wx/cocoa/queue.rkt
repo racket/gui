@@ -38,23 +38,27 @@
  queue-event
  yield)
 
-(import-class NSApplication NSAutoreleasePool NSColor NSProcessInfo NSArray NSMenu NSThread)
+(import-class NSApplication NSAutoreleasePool NSColor NSProcessInfo NSArray NSMenu NSThread
+              NSUserDefaults NSDictionary)
 
 (unless (tell #:type _BOOL NSThread isMainThread)
   (error 'racket/gui
          "cannot instantiate in a non-main place on Mac OS"))
 
-;; Extreme hackery to hide original arguments from
-;; NSApplication, because NSApplication wants to turn 
-;; the arguments into `application:openFile:' calls.
-;; To hide the arguments, we replace the implementation
-;; of `arguments' in the NSProcessInfo object.
-(define (hack-argument-replacement self method)
-  (tell NSArray 
-        arrayWithObjects: #:type (_vector i _NSString) (vector (path->string (find-system-path 'exec-file)))
-        count: #:type _NSUInteger 1))
-(let ([m (class_getInstanceMethod NSProcessInfo (selector arguments))])
-  (void (method_setImplementation m hack-argument-replacement)))
+;; Hide original arguments from NSApplication, because NSApplication
+;; otherwise turns the arguments into `application:openFile:' calls.
+(void
+ (tell (tell NSUserDefaults standardUserDefaults)
+       registerDefaults:
+       (tell NSDictionary
+             dictionaryWithObjects:
+             (tell NSArray
+                   arrayWithObjects: #:type (_vector i _NSString) (vector "NO")
+                   count: #:type _NSUInteger 1)
+             forKeys:
+             (tell NSArray
+                   arrayWithObjects: #:type (_vector i _NSString) (vector "NSTreatUnknownArgumentsAsOpen")
+                   count: #:type _NSUInteger 1))))
 
 (define app (tell NSApplication sharedApplication))
 
