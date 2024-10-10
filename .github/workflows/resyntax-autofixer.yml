@@ -1,0 +1,36 @@
+name: Resyntax Autofixer
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 2"
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.6.0
+      - uses: Bogdanp/setup-racket@v1.10
+        with:
+          architecture: 'x64'
+          distribution: 'minimal'
+          version: 'current'
+      - name: Install and setup
+        run: |
+          raco pkg install --auto compiler-lib
+          racket -l- pkg/dirs-catalog --link --check-metadata pkgs-catalog .
+          echo file://`pwd`/pkgs-catalog/ > catalog-config.txt
+          raco pkg config catalogs >> catalog-config.txt
+          raco pkg config --set catalogs `cat catalog-config.txt`
+          raco pkg install -i --auto --no-setup gui-lib/ gui-doc/ gui/ tex-table/ gui-test/
+          raco setup --pkgs gui gui-lib gui-test tex-table
+      - name: Create a Resyntax pull request
+        uses: jackfirth/create-resyntax-pull-request@v0.4.1
+        with:
+          private-key: ${{ secrets.RESYNTAX_APP_PRIVATE_KEY }}
