@@ -12,6 +12,7 @@
     (test-commenting)
     (test-get-matching-paren-string)
     (open-paren-typing)
+    (test-forward-match)
     (test-text-balanced)
     (test-highlighting)
     (indentation-tests)
@@ -332,6 +333,17 @@
   (check-equal? (text-balanced? "(foo]" 0 #f) #t)
   (check-equal? (text-balanced? "{foo} ((bar) [5.9])" 0 #f) #t)
   (check-equal? (text-balanced? "#(1 2 . 3)" 0 #f) #t))
+
+(define (test-forward-match)
+  (define t (new racket:text%))
+  (send t insert " (\n")
+  (send t reset-regions '((3 3) (5 end)))
+  (send t insert "> (f 01234 56 789 2 3\n")
+  (send t freeze-colorer)
+  (send t thaw-colorer)
+  (check-equal? (send t forward-match 8 (send t last-position)) 13)
+  (check-equal? (send t forward-match 13 (send t last-position)) 16))
+
 
 (define (test-highlighting)
   (preferences:set 'framework:paren-color-scheme 'shades-of-gray)
