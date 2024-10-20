@@ -1058,7 +1058,7 @@ added get-regions
                 (skip-past-token ls position))))))))
     
     (define/private (skip-past-token ls position)
-      (define pos (skip-past-token/ls-relative ls position))
+      (define pos (skip-past-token/ls-relative ls (- position (lexer-state-start-pos ls))))
       (and pos (+ pos (lexer-state-start-pos ls))))
 
     (define/private (skip-past-token/ls-relative ls position)
