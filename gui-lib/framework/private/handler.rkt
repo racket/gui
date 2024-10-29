@@ -75,7 +75,10 @@
        frame))))
 
 (define (edit-file filename [make-default
-                             (λ () ((current-create-new-window) filename))])
+                             (λ () ((current-create-new-window)
+                                    (and (path? filename) filename)))]
+                   #:start-pos [start-pos #f]
+                   #:end-pos [end-pos #f])
   (with-handlers ([(λ (x) #f) ;exn:fail?
                    (λ (exn)
                      (message-box
@@ -97,14 +100,16 @@
                                    filename)])
            (cond
              [already-open
-              (send already-open make-visible filename)
+              (send already-open make-visible filename
+                    #:start-pos start-pos #:end-pos end-pos)
               (send already-open show #t)
               already-open]
              [else
               (let ([handler (and (path? filename)
                                   (find-format-handler filename))])
-                (add-to-recent filename)
-                (if handler (handler filename) (make-default)))]))
+                (when (path? filename)
+                  (add-to-recent filename))
+                (if (and (path? filename) handler) (handler filename) (make-default)))]))
          (make-default))))))
 
 ;; type recent-list-item = (list/p string? number? number?)

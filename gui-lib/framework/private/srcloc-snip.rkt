@@ -13,35 +13,18 @@
   (import [prefix frame: framework:frame^]
           [prefix group: framework:group^]
           [prefix text: framework:text^]
-          [prefix editor: framework:editor^])
+          [prefix editor: framework:editor^]
+          [prefix handler: framework:handler^])
   (export (rename framework:srcloc-snip^ [-snip% snip%]))
 
   (define (select-srcloc srcloc)
-    (let frame-loop ([frames (send (group:get-the-frame-group) get-frames)])
-      (unless (null? frames)
-        (let ([frame (car frames)])
-          (cond
-            [(and (is-a? frame frame:editor<%>)
-                  (send frame find-editor
-                        (lambda (editor)
-                          (send editor port-name-matches? (srcloc-source srcloc)))))
-             => (lambda (editor)
-                  (show-editor frame editor)
-                  (send (send frame get-interactions-text)
-                        highlight-error
-                        editor (srcloc-position srcloc) (+ (srcloc-position srcloc) (srcloc-span srcloc))))]
-            [else
-             (frame-loop (cdr frames))])))))
-
-  (define (show-editor frame editor)
-    (let* ([current-tab (send editor get-tab)]
-           [frame (send current-tab get-frame)])
-      (let loop ([tabs (send frame get-tabs)] [i 0])
-        (unless (null? tabs)
-          (if (eq? (car tabs) current-tab)
-              (send frame change-to-nth-tab i)
-              (loop (cdr tabs) (+ i 1)))))
-      (send frame show #t)))
+    (define pos (srcloc-position srcloc))
+    (define span (srcloc-span srcloc))
+    (handler:edit-file (srcloc-source srcloc)
+                       #:start-pos (and pos (- pos 1))
+                       #:end-pos (cond
+                                   [(and pos span) (+ pos span -1)]
+                                   [else (and pos (- pos 1))])))
 
   ; honest attempt
   (define (source->datum source)

@@ -1004,31 +1004,41 @@ was never saved, then the first element of the list is @racket[#f].
 
  (proc-doc/names
   handler:edit-file
-  (->* ((or/c path? false/c))
-       ((-> (is-a?/c frame:editor<%>)))
+  (->* ((or/c path? symbol? #f))
+       ((-> (is-a?/c frame:editor<%>))
+        #:start-pos (or/c exact-nonnegative-integer? #f)
+        #:end-pos (or/c exact-nonnegative-integer? #f))
        (or/c false/c (is-a?/c frame:editor<%>)))
   ((filename)
    ((make-default
-     (λ () ((handler:current-create-new-window) filename)))))
+     (λ () ((handler:current-create-new-window) (and (path? filename) filename))))
+    (start-pos #f)
+    (end-pos start-pos)))
   @{This function invokes the appropriate format handler to open the file (see
     @racket[handler:insert-format-handler]).
     
     @itemize[
-      @item{If @racket[filename] is a string, this function checks the result
-            of @racket[group:get-the-frame-group] to see if the
+      @item{If @racket[filename] is a string or a symbol, this function checks the result
+            of @racket[group:get-the-frame-group]'s @method[group:% locate-file] method to see if the
             @racket[filename] is already open by a frame in the group.
             @itemize[
               @item{If so, it returns the frame.}
-                   @item{If not, this function calls
+                   @item{If not and if @racket[filename] is a string, this function calls
                          @racket[handler:find-format-handler] with
                          @racket[filename].
                          @itemize[
                            @item{If a handler is found, it is applied to
                                  @racket[filename] and its result is the final
                                  result.}
-                           @item{If not, @racket[make-default] is used.}]}]}
+                           @item{If not, @racket[make-default] is used.}]}
+                   @item{If the file is not already open by a frame in the group
+                         and if @racket[filename] is a symbol,
+                         @racket[make-default] is used.}]}
       @item{If @racket[filename] is @racket[#f], @racket[make-default] is
-            used.}]})
+            used.}]
+
+@history[#:changed "1.75" @list{generalized the @racket[filename] argument to allow
+          symbols and added the @racket[start-pos] and @racket[end-pos] arguments.}]})
 
  (parameter-doc
   handler:current-create-new-window

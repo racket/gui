@@ -84,8 +84,15 @@
     Calls the @method[top-level-window<%> can-close?]  method of each frame in
     the group.
   }
-  @defmethod*[(((locate-file [name path?]) (or/c false/c (is-a?/c frame:basic<%>))))]{
+  @defmethod*[(((locate-file [name (or/c path? symbol?)]) (or/c false/c (is-a?/c frame:basic<%>))))]{
     Returns the frame that is editing or viewing the file @racket[name].
+
+  If @racket[name] is a @racket[symbol?], uses the
+  @method[text:basic<%> port-name-matches?] method to
+  find a window that's editing this file.
+
+  @history[#:changed "1.75" @list{generalized the @racket[filename] argument to allow
+          symbols and added the @racket[start-pos] and @racket[end-pos] arguments.}]
   }
 }
 

@@ -93,11 +93,21 @@
     If @racket[temp] is a box, it is filled with @racket[#t] or @racket[#f],
     depending if the filename is a temporary filename.
   }
-  @defmethod*[(((make-visible (filename string?)) void?))]{
+  @defmethod[(make-visible [filename (or/c path-string? symbol?)]
+                           [#:start-pos start-pos #f (or/c #f exact-nonnegative-integer?)]
+                           [#:end-pos end-pos start-pos (or/c #f exact-nonnegative-integer?)])
+             void?]{
     Makes the file named by @racket[filename] visible (intended for
-    use with tabbed editing).
+    use with tabbed editing), using @method[text:basic<%> port-name-matches?]
+    to find the editor if @racket[filename] is a @racket[symbol?].
 
-  }
+  If both @racket[start-pos] and @racket[end-pos]
+  are numbers, sets the insertion point to the range from
+  @racket[start-pos] and @racket[end-pos].
+
+@history[#:changed "1.75" @list{generalized the @racket[filename] argument to allow
+            symbols and added the @racket[start-pos] and @racket[end-pos] arguments.}]
+ }
 }
 @defmixin[frame:basic-mixin (frame%) (frame:basic<%>)]{
   This mixin provides the basic functionality that the framework expects. It

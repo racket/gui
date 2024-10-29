@@ -179,7 +179,7 @@
          (exit)
          (exit:set-exiting #f))))
     
-    (define/public (make-visible filename) (void))
+    (define/public (make-visible filename #:start-pos [start-pos #f] #:end-pos [end-pos start-pos]) (void))
     (define/public get-filename
       (case-lambda
         [() (get-filename #f)]
@@ -1449,9 +1449,19 @@
                (with-handlers ((exn:fail? (λ (x) #f)))
                  (equal? (normal-case-path (normalize-path x))
                          (normal-case-path (normalize-path y)))))])
-        (let ([this-fn (get-filename)])
-          (and this-fn
-               (path-equal? filename (get-filename))))))
+        (define ed (get-editor))
+        (cond
+          [(let ([fn (get-filename)])
+             (and fn (path-equal? filename (get-filename))))
+           ;; it would be nice to remove this case, as
+           ;; port-name-matches? is doing something similar.
+           ;; unfortunately, it isn't quite the same; here
+           ;; normalize-path is used and there it isn't.
+           #t]
+          [(is-a? ed text:basic<%>)
+           (send ed port-name-matches? filename)]
+          [else
+           #f])))
 
     (define/override (get-all-open-files)
       (with-handlers ((exn:fail? (λ (x) '())))
