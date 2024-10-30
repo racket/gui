@@ -16,20 +16,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3.6.0
-      - uses: Bogdanp/setup-racket@v1.10
+      - uses: Bogdanp/setup-racket@v1.11
         with:
-          architecture: 'x64'
-          distribution: 'minimal'
-          version: 'current'
+          version: current
+          local_catalogs: $GITHUB_WORKSPACE
+          dest: '"${HOME}/racketdist-current-CS"'
+          sudo: never
       - name: Install and setup
-        run: |
-          raco pkg install --auto compiler-lib
-          racket -l- pkg/dirs-catalog --link --check-metadata pkgs-catalog .
-          echo file://`pwd`/pkgs-catalog/ > catalog-config.txt
-          raco pkg config catalogs >> catalog-config.txt
-          raco pkg config --set catalogs `cat catalog-config.txt`
-          raco pkg install -i --auto --no-setup gui-lib/ gui-doc/ gui/ tex-table/ gui-test/
-          raco setup --pkgs gui gui-lib gui-test tex-table
+        run: raco pkg install --auto gui-doc gui-lib gui-test gui text-table
       - name: Create a Resyntax pull request
         uses: jackfirth/create-resyntax-pull-request@v0.4.1
         with:
