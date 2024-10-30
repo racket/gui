@@ -23,7 +23,10 @@ jobs:
           dest: '"${HOME}/racketdist-current-CS"'
           sudo: never
       - name: Install and setup
-        run: raco pkg install --auto gui-doc gui-lib gui-test gui text-table
+        run: |
+          raco pkg install -i --auto --no-setup --skip-installed gui-test
+          raco pkg update --auto --no-setup gui-doc gui-lib gui text-table
+          raco setup gui-doc gui-lib gui-test gui text-table
       - name: Create a Resyntax pull request
         uses: jackfirth/create-resyntax-pull-request@v0.4.1
         with:
