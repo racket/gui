@@ -153,7 +153,8 @@
                   (set))))
 
 
-(let ()
+(when (with-handlers ([exn:fail? (lambda (x) #f)])
+        (collection-path "shrubbery"))
   (define t (new (text:indent-guides-mixin text%)))
   (send t insert
         (string-append
