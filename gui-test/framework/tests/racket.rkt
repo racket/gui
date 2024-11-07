@@ -344,6 +344,12 @@
   (check-equal? (send t forward-match 8 (send t last-position)) 13)
   (check-equal? (send t forward-match 13 (send t last-position)) 16))
 
+(define shrubbery-available?
+  (with-handlers ([exn:fail? (lambda (x) #f)])
+    (collection-path "shrubbery")
+    #t))
+(unless shrubbery-available?
+  (printf "racket.rkt: skipping tests that require shrubbery\n"))
 
 (define (test-highlighting)
   (preferences:set 'framework:paren-color-scheme 'shades-of-gray)
@@ -388,11 +394,12 @@
   (check-equal? (check-parens "()" 0) '((0 2)))
   (check-equal? (check-parens "(())" 0) '((0 4) (1 3)))
   (check-equal? (check-parens "( () () )" 0) '((0 9) (2 4) (5 7)))
-  (check-equal? (check-shrub-parens "1+2" 0) '((0 3)))
-  (check-equal? (check-shrub-parens " 1+2\n 3+4" 1) '((1 4)))
-  (check-equal? (check-shrub-parens " 1+2\n 3+4" 4) '((1 4)))
-  (check-equal? (check-shrub-parens "block:\n 1+2\n 3+4" 0) '((0 16) (8 11) (8 16) (13 16)))
-  (check-equal? (check-shrub-parens "1+2\n\n3+4" 5) '((5 8))))
+  (when shrubbery-available?
+    (check-equal? (check-shrub-parens "1+2" 0) '((0 3)))
+    (check-equal? (check-shrub-parens " 1+2\n 3+4" 1) '((1 4)))
+    (check-equal? (check-shrub-parens " 1+2\n 3+4" 4) '((1 4)))
+    (check-equal? (check-shrub-parens "block:\n 1+2\n 3+4" 0) '((0 16) (8 11) (8 16) (13 16)))
+    (check-equal? (check-shrub-parens "1+2\n\n3+4" 5) '((5 8)))))
 
 (define (test-indentation before)
   (define t (new racket:text%))

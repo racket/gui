@@ -152,9 +152,13 @@
     (check-equal? lines
                   (set))))
 
-
-(when (with-handlers ([exn:fail? (lambda (x) #f)])
-        (collection-path "shrubbery"))
+(define shrubbery-available?
+  (with-handlers ([exn:fail? (lambda (x) #f)])
+    (collection-path "shrubbery")
+    #t))
+(unless shrubbery-available?
+  (printf "text-indent-guides-test.rkt: skipping tests that require shrubbery\n"))
+(when shrubbery-available?
   (define t (new (text:indent-guides-mixin text%)))
   (send t insert
         (string-append
