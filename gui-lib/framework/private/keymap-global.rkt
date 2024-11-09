@@ -53,14 +53,18 @@
             (when (send event button-up?)
               (let ([a (send edit get-admin)])
                 (when a
+                  (define-values (ed-x ed-y)
+                    (send edit
+                          dc-location-to-editor-location
+                          (send event get-x)
+                          (send event get-y)))
                   (let ([m (make-object popup-menu%)])
                     
                     ((keymap:add-to-right-button-menu/before) m edit event)
                     
                     (append-editor-operation-menu-items 
                      m #:popup-position 
-                     (list edit
-                           (send edit find-position (send event get-x) (send event get-y))))
+                     (list edit (send edit find-position ed-x ed-y)))
                     (for-each
                      (λ (i)
                        (when (is-a? i selectable-menu-item<%>)
@@ -69,11 +73,7 @@
                     
                     ((keymap:add-to-right-button-menu) m edit event)
                     
-                    (let-values ([(x y) (send edit
-                                              dc-location-to-editor-location
-                                              (send event get-x)
-                                              (send event get-y))])
-                      (send a popup-menu m (+ x 1) (+ y 1))))))))]
+                    (send a popup-menu m (+ ed-x 1) (+ ed-y 1)))))))]
          
          [toggle-anchor
           (λ (edit event)
