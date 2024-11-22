@@ -482,6 +482,7 @@
 
 (preferences:set-default 'framework:verify-exit #t boolean?)
 (preferences:set-default 'framework:delete-forward? #t boolean?)
+(preferences:set-default 'framework:home/end-to-beginning/end-of-document? #f boolean?)
 (preferences:set-default 'framework:show-periods-in-dirlist #f boolean?)
 (preferences:set-default 'framework:file-dialogs 'std
                          (λ (x) (and (memq x '(common std)) #t)))
