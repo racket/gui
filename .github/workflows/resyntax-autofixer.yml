@@ -25,8 +25,8 @@ jobs:
       - name: Install and setup
         run: |
           raco pkg install -i --auto --no-setup --skip-installed gui-test
-          raco pkg update --auto --no-setup gui-doc gui-lib gui text-table
-          raco setup gui-doc gui-lib gui-test gui text-table
+          raco pkg update --auto --no-setup gui-doc gui-lib gui tex-table
+          raco setup gui-doc gui-lib gui-test gui tex-table
       - name: Create a Resyntax pull request
         uses: jackfirth/create-resyntax-pull-request@v0.5.1
         with:
