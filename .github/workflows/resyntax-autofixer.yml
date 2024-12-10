@@ -24,7 +24,7 @@ jobs:
           sudo: never
       - name: Install and setup
         run: |
-          raco pkg install -i --auto --no-setup --skip-installed gui-test
+          raco pkg install -i --auto --no-setup --skip-installed gui-test gui-doc
           raco pkg update --auto --no-setup gui-doc gui-lib gui tex-table
           raco setup gui-doc gui-lib gui-test gui tex-table
       - name: Create a Resyntax pull request
