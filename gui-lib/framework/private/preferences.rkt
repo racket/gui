@@ -465,6 +465,8 @@ the state transitions / contracts are:
                    (add-check editor-panel 'framework:delete-forward?
                               (string-constant map-delete-to-backspace)
                               not not)
+                   (add-check editor-panel 'framework:home/end-to-beginning/end-of-document?
+                              (string-constant home/end-is-go-to-beginning/end-of-document))
                    (add-check editor-panel 
                               'framework:auto-set-wrap?
                               (string-constant wrap-words-in-editor-buffers))
