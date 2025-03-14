@@ -462,7 +462,8 @@ the state transitions / contracts are:
                  (list (string-constant editor-prefs-panel-label) 
                        (string-constant editor-general-prefs-panel-label))
                  (λ (editor-panel)
-                   (define narrow-checkboxes-hp (new horizontal-panel% [parent editor-panel] [stretchable-height #f]))
+                   (define narrow-checkboxes-hp
+                     (new horizontal-panel% [parent editor-panel] [stretchable-height #f] [alignment '(left top)]))
                    (define narrow-checkboxes-left
                      (new vertical-panel% [parent narrow-checkboxes-hp] [stretchable-height #f] [alignment '(left top)]))
                    (define narrow-checkboxes-right
