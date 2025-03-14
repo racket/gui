@@ -462,42 +462,54 @@ the state transitions / contracts are:
                  (list (string-constant editor-prefs-panel-label) 
                        (string-constant editor-general-prefs-panel-label))
                  (λ (editor-panel)
-                   (add-check editor-panel 'framework:delete-forward?
+                   (define narrow-checkboxes-hp (new horizontal-panel% [parent editor-panel] [stretchable-height #f]))
+                   (define narrow-checkboxes-left
+                     (new vertical-panel% [parent narrow-checkboxes-hp] [stretchable-height #f] [alignment '(left top)]))
+                   (define narrow-checkboxes-right
+                     (new vertical-panel% [parent narrow-checkboxes-hp] [stretchable-height #f] [alignment '(left top)]))
+                   ;; start narrow ones; the left should have more than the right on all platforms
+                   ;; macos, left: 5, right: 4
+                   ;; linux, left: 4, right: 3
+                   ;; win,   left: 5, right: 3
+                   (add-check narrow-checkboxes-left 'framework:delete-forward?
                               (string-constant map-delete-to-backspace)
                               not not)
-                   (add-check editor-panel 
+                   (add-check narrow-checkboxes-left
                               'framework:auto-set-wrap?
                               (string-constant wrap-words-in-editor-buffers))
-                   
-                   (add-check editor-panel 
-                              'framework:menu-bindings
-                              (string-constant enable-keybindings-in-menus))
+                   (add-check narrow-checkboxes-left
+                              'framework:caret-blink-disable?
+                              (string-constant disable-caret-blinking))
                    (when (memq (system-type) '(macosx))
-                     (add-check editor-panel 
+                     (add-check narrow-checkboxes-left
                                 'framework:alt-as-meta
                                 (string-constant alt-as-meta))
-                     (add-check editor-panel 
+                     (add-check narrow-checkboxes-left
                                 'framework:special-meta-key
                                 (string-constant command-as-meta)))
-                   
                    (when (memq (system-type) '(windows))
-                     (add-check editor-panel 
+                     (add-check narrow-checkboxes-left
                                 'framework:any-control+alt-is-altgr
                                 (string-constant any-control+alt-is-altgr)))
-                   
-                   (add-check editor-panel 
+                   (add-check (if (equal? (system-type) 'macosx)
+                                  narrow-checkboxes-right
+                                  narrow-checkboxes-left)
                               'framework:coloring-active
                               (string-constant online-coloring-active))
-                   
-                   (add-check editor-panel
+                   (add-check narrow-checkboxes-right
                                'framework:anchored-search
                                (string-constant find-anchor-based))
-                   (add-check editor-panel
+                   (add-check narrow-checkboxes-right
                               'framework:do-paste-normalization
                               (string-constant normalize-string-preference))
-                   (add-check editor-panel
+                   (add-check narrow-checkboxes-right
                                'framework:overwrite-mode-keybindings
                                (string-constant enable-overwrite-mode-keybindings))
+                   ;; end narrow ones
+
+                   (add-check editor-panel
+                              'framework:menu-bindings
+                              (string-constant enable-keybindings-in-menus))
                    (add-check editor-panel
                                'framework:automatic-parens
                                (string-constant enable-automatic-parens))
@@ -513,9 +525,6 @@ the state transitions / contracts are:
                                'framework:column-guide-width
                                (string-constant maximum-char-width-guide-pref-check-box)
                                (λ (n) (and (exact-integer? n) (>= n 2))))
-                   (add-check editor-panel
-                              'framework:caret-blink-disable?
-                              (string-constant disable-caret-blinking))
                    (when (equal? (system-type) 'unix)
                      (add-check editor-panel
                                 'framework:editor-x-selection-mode
