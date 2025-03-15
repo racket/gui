@@ -24,7 +24,8 @@
                               [callback (-> (is-a?/c switchable-button%) any/c)]
                               [alternate-bitmap (is-a?/c bitmap%) bitmap]
                               [vertical-tight? boolean? #f]
-                              [min-width-includes-label? boolean? #f])]{
+                              [min-width-includes-label? boolean? #f]
+                              [right-click-menu (or/c #f (list/c string? (-> any)))])]{
     The @racket[callback] is called when the button
     is pressed. The @racket[label] and @racket[bitmap] are
     used as discussed above.
@@ -39,7 +40,14 @@
     If the @racket[min-width-includes-label?] is @racket[#t], then the minimum
     width includes both the bitmap and the label. Otherwise, it includes
     only the bitmap.
-  }
+
+  If @racket[right-click-menu] is not @racket[#f], then right
+  click (or control click on some platforms) opens a context
+  sensitive menu under the button with one menu item whose
+  label is the string and whose callback is the thunk.
+
+    @history[#:changed "1.76" @list{Added the @racket[right-click-menu] argument}]
+}
   
   @defmethod[(set-label-visible [visible? boolean?]) void?]{
     Sets the visibility of the string part of the label.

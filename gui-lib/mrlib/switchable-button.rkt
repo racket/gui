@@ -1,5 +1,6 @@
 #lang racket/base
 (require racket/gui/base
+         racket/contract
          racket/class
          "private/panel-wob.rkt")
 
@@ -63,7 +64,8 @@
                 callback
                 [alternate-bitmap bitmap]
                 [vertical-tight? #f]
-                [min-width-includes-label? #f])
+                [min-width-includes-label? #f]
+                [right-click-menu #f])
 
     (define/public (get-button-label) label)
     (define/override (set-label l)
@@ -75,6 +77,12 @@
                (not (send label ok?)))
       (error 'switchable-button% "label bitmap is not ok?"))
 
+    (let ([rcb-pred (or/c #f (list/c string? (procedure-arity-includes/c 0)))])
+      (unless (rcb-pred right-click-menu)
+        (error 'switchable-button% "contract violation\n  expected: ~s\n  got: ~e"
+               (contract-name rcb-pred)
+               right-click-menu)))
+
     (define/override (get-label) label)
 
     (define disable-bitmap (make-dull-mask bitmap))
@@ -85,7 +93,7 @@
           (make-dull-mask alternate-bitmap)))
 
     (inherit get-dc min-width min-height get-client-size refresh
-	     client->screen get-top-level-window)
+	     client->screen get-top-level-window popup-menu)
 
     (define down? #f)
     (define in? #f)
@@ -130,6 +138,18 @@
                     (not disabled?))
            (update-float #f)
            (callback this))]
+        [(send evt button-up?)
+         (set! down? #f)
+         (refresh)]
+        [(send evt button-down? 'right)
+         (when right-click-menu
+           (define m (new popup-menu%))
+           (new menu-item%
+                [label (list-ref right-click-menu 0)]
+                [parent m]
+                [callback (λ (_1 _2) ((list-ref right-click-menu 1)))])
+           (define-values (cw ch) (get-client-size))
+           (popup-menu m 0 ch))]
         [(send evt entering?)
          (set! in? #t)
          (update-float #t)
