@@ -1181,7 +1181,7 @@ Debugging tools:
                                   w h)))
                (let ([maxspace (max maxspace (- maxantidescent maxbase))]
                      [maxdescent (max maxdescent (- maxantispace maxbase))])
-                 (unless (eq? (mline-scroll-snip mline) scroll-snip)
+                 (unless (object-or-false=? (mline-scroll-snip mline) scroll-snip)
                    (set! sizing-changed? #t)
                    (set-mline-scroll-snip! mline scroll-snip))
                  (unless (= (mline-last-h mline) last-h)
