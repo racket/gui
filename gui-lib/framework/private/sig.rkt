@@ -113,7 +113,8 @@
      add-check
      add-boolean-option-with-ask-me
      show-dialog
-     hide-dialog))
+     hide-dialog
+     show-tab-panel))
   
   (define-signature autosave-class^
     (autosavable<%>))

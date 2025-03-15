@@ -471,6 +471,19 @@ the third is "Ask me". The preference named by@racket[pref-key] is updated based
   @{Shows the preferences dialog.})
 
  (proc-doc/names
+  preferences:show-tab-panel
+  (-> (listof string?) void)
+  (labels)
+  @{Shows the preferences dialog, making a particular panel visible.
+    The strings in the @racket[labels] argument control which one is visible.
+
+    The strings in the @racket[labels] argument correspond to the strings passed to
+    @racket[preferences:add-panel].
+
+    @history[#:added "1.76"]
+    })
+
+ (proc-doc/names
   preferences:hide-dialog
   (-> void?)
   ()

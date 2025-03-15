@@ -259,7 +259,19 @@ the state transitions / contracts are:
   (define on-close-dialog-callbacks null)
   
   (define can-close-dialog-callbacks null)
-  
+
+;; labels->panel-visibility-thunk : hash[(listof string?) -o> (-> void?)]
+;; maps the sequence of strings naming a path into the preferences
+;; dialog into a function that makes the corresponding panel visible
+(define labels->panel-visibility-thunk (make-hash))
+
+(define (show-tab-panel panel-paths)
+  (show-dialog)
+  (define pth (hash-ref labels->panel-visibility-thunk panel-paths #f))
+  (unless pth
+    (error 'show-tab-panel "did not find the path\n  path: ~e" panel-paths))
+  (pth))
+
   (define (make-preferences-dialog)
     (letrec ([stashed-prefs (preferences:get-prefs-snapshot)]
              [cancelled? #f]
@@ -288,32 +300,39 @@ the state transitions / contracts are:
                    [label (string-constant preferences)]
                    [height 200])]
              [build-ppanel-tree
-              (λ (ppanel tab-panel single-panel)
+              (λ (ppanel tab-panel single-panel parents thunk)
                 (send tab-panel append (ppanel-name ppanel))
                 (cond
-                  [(ppanel-leaf? ppanel) 
+                  [(ppanel-leaf? ppanel)
+                   (hash-set! labels->panel-visibility-thunk (cons (ppanel-name ppanel) parents) thunk)
                    ((ppanel-leaf-maker ppanel) single-panel)]
                   [(ppanel-interior? ppanel)
-                   (let-values ([(tab-panel single-panel) (make-tab/single-panel single-panel #t)])
-                     (for-each
-                      (λ (ppanel) (build-ppanel-tree ppanel tab-panel single-panel))
-                      (ppanel-interior-children ppanel)))]))]
+                   (define-values (tab-panel next-single-panel) (make-tab/single-panel single-panel #t))
+                   (define (next-thunk)
+                     (thunk)
+                     (tab-panel-callback next-single-panel tab-panel))
+                   (for ([child-ppanel (in-list (ppanel-interior-children ppanel))]
+                         [i (in-naturals)])
+                     (build-ppanel-tree child-ppanel tab-panel next-single-panel
+                                        (cons (ppanel-name ppanel) parents)
+                                        (λ ()
+                                          (send tab-panel set-selection i)
+                                          (next-thunk))))]))]
              [make-tab/single-panel 
               (λ (parent inset?)
-                (letrec ([spacer (and inset?
-                                      (instantiate vertical-panel% ()
-                                        (parent parent)
-                                        (border 10)))]
-                         [tab-panel (instantiate tab-panel% ()
-                                      (choices null)
-                                      (parent (if inset? spacer parent))
-                                      (callback (λ (_1 _2) 
-                                                  (tab-panel-callback
-                                                   single-panel
-                                                   tab-panel))))]
-                         [single-panel (instantiate panel:single% ()
-                                         (parent tab-panel))])
-                  (values tab-panel single-panel)))]
+                (define spacer (and inset?
+                                    (new vertical-panel%
+                                         [parent parent]
+                                         [border 10])))
+                (define tab-panel (new tab-panel%
+                                       [choices null]
+                                       [parent (if inset? spacer parent)]
+                                       [callback (λ (_1 _2)
+                                                   (tab-panel-callback
+                                                    single-panel
+                                                    tab-panel))]))
+                (define single-panel (new  panel:single% [parent tab-panel]))
+                (values tab-panel single-panel))]
              [tab-panel-callback
               (λ (single-panel tab-panel)
                 (send single-panel active-child
@@ -321,10 +340,15 @@ the state transitions / contracts are:
                                 (send tab-panel get-selection))))]
              [panel (make-object vertical-panel% (send frame get-area-container))]
              [_ (let-values ([(tab-panel single-panel) (make-tab/single-panel panel #f)])
-                  (for-each
-                   (λ (ppanel)
-                     (build-ppanel-tree ppanel tab-panel single-panel))
-                   ppanels)
+                  (for ([ppanel (in-list ppanels)]
+                        [i (in-naturals)])
+                    (build-ppanel-tree ppanel tab-panel single-panel
+                                       '()
+                                       (λ ()
+                                         (send tab-panel set-selection i)
+                                         (tab-panel-callback
+                                          single-panel
+                                          tab-panel))))
                   (let ([single-panel-children (send single-panel get-children)])
                     (unless (null? single-panel-children)
                       (send single-panel active-child (car single-panel-children))
