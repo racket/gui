@@ -167,7 +167,7 @@ See also @racket[path-dialog%] for a richer interface.
                         [directory (or/c path-string? #f) #f]
                         [style (listof (or/c 'enter-packages 'common)) null]
                         [#:dialog-mixin dialog-mixin (make-mixin-contract path-dialog%) (λ (x) x)])
-         (or/c path #f)]{
+         (or/c path? #f)]{
 
 Obtains a directory pathname from the user via the platform-specific
  standard (modal) dialog, using @racket[parent] as the parent window if
