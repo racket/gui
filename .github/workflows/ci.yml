@@ -15,12 +15,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: Bogdanp/setup-racket@v1.10
+    - uses: Bogdanp/setup-racket@v1.11
       with:
         architecture: 'x64'
         distribution: 'minimal'
         variant: ${{ matrix.variant }}
         version: 'current'
+        snapshot_site: 'utah'
     - name: Install and setup
       run: |
         raco pkg install --auto compiler-lib
