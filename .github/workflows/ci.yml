@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   build-test:
     name: Build & Test (Racket ${{ matrix.variant }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: racket/racket-ci:latest
 
     strategy:
