@@ -24,6 +24,7 @@
               set-front-hook!
               set-menu-bar-hooks!
               set-mouse-or-key-hook!
+              set-post-key-callback-hook!
               set-fixup-window-locations!
               post-dummy-event
 
@@ -426,6 +427,9 @@
 (define front-hook (lambda () (values #f #f)))
 (define (set-front-hook! proc) (set! front-hook proc))
 
+(define get-post-key-callback (lambda () #f))
+(define (set-post-key-callback-hook! proc) (set! get-post-key-callback proc))
+
 (define in-menu-bar-range? (lambda (p flipped?) #f))
 (define (set-menu-bar-hooks! r?) 
   (set! in-menu-bar-range? r?))
@@ -525,8 +529,14 @@
                                           (lambda ()
                                             ;; in atomic mode
                                             (with-autorelease
-                                             (tellv app sendEvent: evt)
-                                             (release evt))))
+                                              (define post-key
+                                                (and (not w)
+                                                     (= NSEventTypeKeyDown (tell #:type _NSUInteger evt type))
+                                                     (not (tell app keyWindow))
+                                                     (get-post-key-callback evt)))
+                                              (tellv app sendEvent: evt)
+                                              (when post-key (post-key evt))
+                                              (release evt))))
                                          (when mouse-or-key?
                                            (set! avoid-mouse-key-until #f)))))
                       (tellv app sendEvent: evt)))

@@ -863,6 +863,14 @@
        (when f
          (send f fixup-locations-children))))))
 
+(set-post-key-callback-hook!
+ (lambda (evt)
+   (key-event-received #f)
+   (and root-fake-frame
+        (lambda (evt)
+          (unless (key-event-received)
+            (tellv (send root-fake-frame get-cocoa) keyDown: evt))))))
+
 ;; ----------------------------------------
 ;; As of Mac OS 10.14, NSWindow-specific flushing control is no longer
 ;; supported. It seems to have been removed as a way of simplifying the

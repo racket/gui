@@ -39,6 +39,7 @@
 (define NSOtherMouseDown 25)
 (define NSOtherMouseUp 26)
 (define NSOtherMouseDragged 27)
+(define NSEventTypeKeyDown 10)
 (define NSEventTypeGesture 29)
 (define NSEventTypeMagnify 30)
 (define NSEventTypeSwipe 31)

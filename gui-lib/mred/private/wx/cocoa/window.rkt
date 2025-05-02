@@ -26,6 +26,8 @@
               KeyMouseTextResponder
               CursorDisplayer
 
+              key-event-received
+
               queue-window-event
               queue-window-refresh-event
               queue-window*-event
@@ -302,6 +304,7 @@
      (let ([inserted-text (box #f)]
            [set-mark (box #f)]
            [had-saved-text? (and (send wx get-saved-marked) #t)])
+       (key-event-received #t)
        (when down?
          ;; Calling `interpretKeyEvents:' allows key combinations to be
          ;; handled, such as option-e followed by e to produce é. The
@@ -1108,6 +1111,14 @@
 
 (define compose-cocoa #f)
 (define compose-text #f)
+
+;; ----------------------------------------
+
+(define key-event-received? #f)
+(define key-event-received
+  (case-lambda
+    [() key-event-received?]
+    [(received?) (set! key-event-received? received?)]))
 
 ;; ----------------------------------------
 
