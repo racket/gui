@@ -373,6 +373,7 @@
     tabify-on-return?
     tabify
     tabify-selection
+    tabify-selection/reverse-choices
     tabify-all
     insert-return
 
@@ -674,6 +675,10 @@
              (end-edit-sequence)
              (when (< first-para end-para)
                (end-busy-cursor)))))))
+
+    (define/public (tabify-selection/reverse-choices [start-pos (get-start-position)]
+                                                     [end-pos (get-end-position)])
+      (tabify-selection start-pos end-pos))
 
     (define/public (tabify-all) (tabify-selection 0 (last-position)))
     (define/public (insert-return)
@@ -1714,6 +1719,8 @@
                      (λ (x) (send x select-up-sexp)))
   (add-edit-function "tabify-at-caret"
                      (λ (x) (send x tabify-selection)))
+  (add-edit-function "tabify-at-caret/reverse-choices"
+                     (λ (x) (send x tabify-selection/reverse-choices)))
   (add-edit-function "do-return"
                      (λ (x) (send x insert-return)))
   (add-edit-function "comment-out"
@@ -1827,6 +1834,7 @@
     (send keymap map-function key func))
 
   (map "TAB" "tabify-at-caret")
+  (map "s:TAB" "tabify-at-caret/reverse-choices")
 
   (map "return" "do-return")
   (map "s:return" "do-return")

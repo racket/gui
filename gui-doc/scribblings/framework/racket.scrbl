@@ -84,6 +84,17 @@
     through @racket[end].
   }
 
+  @defmethod*[(((tabify-selection/reverse-choices (start exact-integer? (send this get-start-position))
+                                                  (end exact-integer? (send this get-end-position)))
+                void?))]{
+    Sets the tabbing for the lines containing positions @racket[start]
+    through @racket[end], but if there are multiple valid tabbings to cycle through,
+    this method should cycle through the choices in reverse order. The default
+    implementation calls @method[racket:text<%> tabify-selection].
+
+    @history[#:added "1.77"]
+  }
+
   @defmethod*[(((tabify-all) void?))]{
     Tabs all lines.
 
