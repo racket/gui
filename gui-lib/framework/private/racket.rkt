@@ -6,8 +6,10 @@
 (require string-constants
          racket/class
          racket/string
+         racket/promise
          mred/mred-sig
          syntax-color/module-lexer
+         syntax-color/racket-lexer
          syntax-color/racket-indentation
          syntax-color/racket-navigation
          "collapsed-snipclass-helpers.rkt"
@@ -1365,27 +1367,28 @@
     (|{| |}|)))
 
 (define (wrap-get-token get-token- get-tabify-pref)
+  (define (set-type-sym type sym) (if (hash? type) (hash-set type 'type sym) sym))
+  (define (type-val type key) (and (hash? type) (hash-ref type key #f)))
   (define wrapped-get-token
     (cond
       [(procedure-arity-includes? get-token- 3)
        (λ (in offset mode)
          (define-values (lexeme type paren start end backup-delta new-mode)
-           (get-token- in offset mode))
+           (parameterize ([current-lexeme->semantic-type-guess (make-lexeme->semantic-type-guess get-tabify-pref)])
+             (get-token- in offset mode)))
          (cond
-           [(and (eq? type 'symbol)
-                 (string? lexeme)
-                 (get-head-sexp-type-from-prefs lexeme (get-tabify-pref)))
-            (values lexeme 'keyword paren start end backup-delta new-mode)]
+           [(memq (type-val type 'semantic-type-guess) '(keyword builtin))
+            (values lexeme (set-type-sym type 'keyword) paren start end backup-delta new-mode)]
            [else
             (values lexeme type paren start end backup-delta new-mode)]))]
       [else
        (λ (in)
-         (define-values (lexeme type paren start end) (get-token- in))
+         (define-values (lexeme type paren start end)
+           (parameterize ([current-lexeme->semantic-type-guess (make-lexeme->semantic-type-guess get-tabify-pref)])
+             (get-token- in)))
          (cond
-           [(and (eq? type 'symbol)
-                 (string? lexeme)
-                 (get-head-sexp-type-from-prefs lexeme (get-tabify-pref)))
-            (values lexeme 'keyword paren start end)]
+           [(memq (type-val type 'semantic-type-guess) '(keyword builtin))
+            (values lexeme (set-type-sym type 'keyword) paren start end)]
            [else
             (values lexeme type paren start end)]))]))
   (procedure-rename wrapped-get-token
@@ -1397,6 +1400,10 @@
 (define (get-head-sexp-type-from-prefs text pref)
   ((racket-tabify-table->head-sexp-type pref) text))
 
+(define (make-lexeme->semantic-type-guess get-tabify-pref)
+  (let ([lexeme->head-sexp-type/promise (delay (racket-tabify-table->head-sexp-type (get-tabify-pref)))])
+    (lambda (lexeme)
+      (and ((force lexeme->head-sexp-type/promise) lexeme) 'keyword))))
 
 ;; in-position? : text (list symbol) -> boolean
 ;; determines if the cursor is currently sitting in a particular
