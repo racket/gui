@@ -36,7 +36,7 @@
 (define _GtkSettings (_cpointer 'GtkSettings))
 (define-gtk gtk_settings_get_default (_fun -> _GtkSettings))
 (define-gobj g_object_set/boolean 
-  (_fun _GtkSettings _string _gboolean (_pointer = #f) -> _void)
+  (_fun #:varargs-after 2 _GtkSettings _string _gboolean (_pointer = #f) -> _void)
   #:c-id g_object_set)
 (define (force-button-images-on gtk)
   ;; Globally turning on button images isn't really the right thing.

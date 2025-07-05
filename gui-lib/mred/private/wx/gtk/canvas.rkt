@@ -37,9 +37,11 @@
 (define-gobj g_object_freeze_notify (_fun _GtkWidget -> _void))
 (define-gobj g_object_thaw_notify (_fun _GtkWidget -> _void))
 
-(define-gobj g_object_set_double (_fun _GtkWidget _string _double* (_pointer = #f) -> _void)
+(define-gobj g_object_set_double (_fun #:varargs-after 2
+                                       _GtkWidget _string _double* (_pointer = #f) -> _void)
   #:c-id g_object_set)
-(define-gobj g_object_get_double (_fun _GtkWidget _string (r : (_ptr o _double)) (_pointer = #f) 
+(define-gobj g_object_get_double (_fun #:varargs-after 2
+                                       _GtkWidget _string (r : (_ptr o _double)) (_pointer = #f)
 				       -> _void -> r)
   #:c-id g_object_get)
 
@@ -124,7 +126,8 @@
 (define-gtk gtk_container_remove (_fun _GtkWidget _GtkWidget -> _void))
 (define-gtk gtk_bin_get_child (_fun _GtkWidget -> _GtkWidget))
 
-(define-gobj g_object_set_bool (_fun _GtkWidget _string _gboolean [_pointer = #f] -> _void)
+(define-gobj g_object_set_bool (_fun #:varargs-after 2
+                                     _GtkWidget _string _gboolean [_pointer = #f] -> _void)
   #:c-id g_object_set)
 
 (define _GtkIMContext (_cpointer 'GtkIMContext))

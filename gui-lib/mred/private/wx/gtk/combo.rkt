@@ -46,7 +46,8 @@
 (define-gobj g_signal_handler_block (_fun _GtkWidget _uint -> _void))
 (define-gobj g_signal_handler_unblock (_fun _GtkWidget _uint -> _void))
 
-(define-gobj g_signal_emit (_fun _GtkWidget
+(define-gobj g_signal_emit (_fun #:varargs-after 3
+                                 _GtkWidget
                                  _uint
                                  _GQuark
                                  _pointer

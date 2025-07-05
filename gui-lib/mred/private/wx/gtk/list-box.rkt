@@ -39,13 +39,16 @@
 (define-gtk gtk_list_store_newv (_fun _int (_list i _long) -> _GtkListStore))
 (define-gtk gtk_list_store_clear (_fun _GtkListStore -> _void))
 (define-gtk gtk_list_store_append (_fun _GtkListStore _GtkTreeIter-pointer _pointer -> _void))
-(define-gtk gtk_list_store_set (_fun _GtkListStore _GtkTreeIter-pointer _int _string _int -> _void))
+(define-gtk gtk_list_store_set (_fun #:varargs-after 2
+                                     _GtkListStore _GtkTreeIter-pointer _int _string _int -> _void))
 (define-gtk gtk_tree_view_new_with_model (_fun _GtkListStore -> _GtkWidget))
 (define-gtk gtk_tree_view_set_model (_fun _GtkWidget _GtkListStore -> _void))
 (define-gtk gtk_tree_view_set_headers_visible (_fun _GtkWidget _gboolean -> _void))
 (define-gtk gtk_cell_renderer_text_new (_fun -> _GtkCellRenderer))
-(define-gtk gtk_tree_view_column_new_with_attributes (_fun _string _GtkCellRenderer _string _int _pointer -> _GtkTreeViewColumn))
-(define-gtk gtk_tree_view_column_set_attributes (_fun _GtkTreeViewColumn _GtkCellRenderer _string _int _pointer -> _void))
+(define-gtk gtk_tree_view_column_new_with_attributes (_fun #:varargs-after 2
+                                                           _string _GtkCellRenderer _string _int _pointer -> _GtkTreeViewColumn))
+(define-gtk gtk_tree_view_column_set_attributes (_fun #:varargs-after 2
+                                                      _GtkTreeViewColumn _GtkCellRenderer _string _int _pointer -> _void))
 (define-gtk gtk_tree_view_column_set_resizable (_fun _GtkTreeViewColumn _gboolean -> _void))
 (define-gtk gtk_tree_view_column_set_clickable (_fun _GtkTreeViewColumn _gboolean -> _void))
 (define-gtk gtk_tree_view_column_set_reorderable (_fun _GtkTreeViewColumn _gboolean -> _void))
@@ -75,7 +78,8 @@
 (define-gtk gtk_tree_selection_unselect_all (_fun  _GtkWidget -> _void))
 (define-gtk gtk_tree_selection_select_path (_fun  _GtkWidget _pointer -> _void))
 (define-gtk gtk_tree_selection_unselect_path (_fun  _GtkWidget _pointer -> _void))
-(define-gtk gtk_tree_path_new_from_indices (_fun _int _int -> _pointer))
+(define-gtk gtk_tree_path_new_from_indices (_fun #:varargs-after 1
+                                                 _int _int -> _pointer))
 (define-gtk gtk_tree_path_free (_fun _pointer -> _void))
 (define-gtk gtk_tree_path_get_indices (_fun _pointer -> _pointer))
 

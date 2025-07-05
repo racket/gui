@@ -91,11 +91,13 @@
 
 (define _GtkSettings (_cpointer 'GtkSettings))
 (define-gtk gtk_settings_get_default (_fun -> _GtkSettings))
-(define-gobj g_object_get/int (_fun _GtkSettings _string (r : (_ptr o _int)) (_pointer = #f) 
+(define-gobj g_object_get/int (_fun #:varargs-after 2
+                                    _GtkSettings _string (r : (_ptr o _int)) (_pointer = #f)
 				    -> _void
 				    -> r)
   #:c-id g_object_get)
-(define-gobj g_object_get/string (_fun _GtkSettings _string (r : (_ptr o _pointer)) (_pointer = #f)
+(define-gobj g_object_get/string (_fun #:varargs-after 2
+                                       _GtkSettings _string (r : (_ptr o _pointer)) (_pointer = #f)
 				       -> _void
 				       -> r)
   #:c-id g_object_get)
