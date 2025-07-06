@@ -95,6 +95,16 @@
             @racket['no-color] can be used to indicate that although
             the token is not whitespace, it should not be colored.
 
+            In addition to @racket['type], a @racket[get-token] function
+            may provide an optional @racket['semantic-type-guess] key
+            for tokens that look like they might fit into more specific
+            categories (for example, symbols in a language that look
+            like keywords), but that it can't prove belong to those
+            categories (for example, because it can't tell if the symbol
+            shadows a keyword). Tools may allow users to opt into
+            preferring the @racket['semantic-type-guess], if present,
+            over the @racket['type] when coloring a token.
+
             These and other keys in @racket[_attribs] can be used by
             tools that call @method[color:text<%>
             classify-position*].}
