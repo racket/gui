@@ -607,12 +607,13 @@
     (cond
       ;; work around the upstream issue https://gitlab.gnome.org/GNOME/gtk/-/issues/2599
       [(and wayland?
-            ;; for gtk3 >= 3.24.9
+            ;; for gtk3 >= 3.24.9 and < 3.24.42
             gtk3?
             (or
              (> (gtk_get_minor_version) 24)
              (and (= (gtk_get_minor_version) 24)
-                  (>= (gtk_get_micro_version) 9))))
+                  (>= (gtk_get_micro_version) 9)
+                  (< (gtk_get_micro_version) 42))))
        (define scale (gdk_screen_get_monitor_scale_factor
                       (gdk_screen_get_default)
                       num))
