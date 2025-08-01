@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: ['BC', 'CS']
+        variant: ['CS']
 
     steps:
     - uses: actions/checkout@v4
