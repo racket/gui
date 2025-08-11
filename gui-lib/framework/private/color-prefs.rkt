@@ -753,7 +753,7 @@
                                     #f)])
                    (get-info/full dir)))
     (when info
-      (define cs-info (info 'framework:color-schemes))
+      (define cs-info (info 'framework:color-schemes (lambda () "wrong answer")))
       (cond
         [(info-file-result-check? cs-info)
          (for ([one-scheme (in-list cs-info)])
