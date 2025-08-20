@@ -30,7 +30,7 @@
       (tellv cocoa setFont: sys-font)))
 
 (define (strip-mnemonic s)
-  (regexp-replace #rx"[&](.)" s "\\1"))
+  (regexp-replace* #rx"[&](.)" s "\\1"))
 
 (defclass item% window%
   (inherit get-cocoa
