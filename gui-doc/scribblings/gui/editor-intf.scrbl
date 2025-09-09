@@ -1970,6 +1970,24 @@ The stream provides either new mappings for names in the editor's
  when the editor was written to the stream; see also @method[editor<%>
  write-to-file]).
 
+Leveraging @method[editor<%> read-from-file] to read from the editor stream
+ requires some ceremony which may not be obvious at first; calls to
+ @racket[read-editor-global-header] and @racket[read-editor-global-footer]
+ must bracket any call to @method[editor<%> read-from-file], and only one
+ stream at a time can be read from using these methods or written to using
+ @racket[write-editor-global-header] and @racket[write-editor-global-footer].
+
+As a complete example consider the following:
+@racketblock[
+  (define (deserialize-text byte-stream)
+    (define editor (new text% [auto-wrap #t]))
+    (define editor-stream-in-bytes-base (make-object editor-stream-in-bytes-base% byte-stream))
+    (define editor-stream-in (make-object editor-stream-in% editor-stream-in-bytes-base))
+    (read-editor-global-header editor-stream-in)
+    (send editor read-from-file editor-stream-in)
+    (read-editor-global-footer editor-stream-in)
+    editor)]
+
 @itemize[
 
  @item{In the former case, if the @racket[overwrite-styles?] argument
@@ -2658,4 +2676,21 @@ If the editor's style list has already been written to the stream, it
  is not re-written. Instead, the editor content indicates that the
  editor shares a previously-written style list. This sharing will be
  recreated when the stream is later read.
+
+Leveraging @method[editor<%> write-to-file] to write to the editor stream
+ requires some ceremony which may not be obvious at first; calls to
+ @racket[write-editor-global-header] and @racket[write-editor-global-footer]
+ must bracket any call to @method[editor<%> write-to-file], and only one
+ stream at a time can be written to using these methods or read from using
+ @racket[read-editor-global-header] and @racket[read-editor-global-footer].
+
+As a complete example consider the following:
+@racketblock[
+  (define (serialize-text text)
+    (define editor-stream-out-bytes-base (new editor-stream-out-bytes-base%))
+    (define editor-stream-out (make-object editor-stream-out% editor-stream-out-bytes-base))
+    (write-editor-global-header editor-stream-out)
+    (send text write-to-file editor-stream-out)
+    (write-editor-global-footer editor-stream-out)
+    (send editor-stream-out-bytes-base get-bytes))]
 }}
