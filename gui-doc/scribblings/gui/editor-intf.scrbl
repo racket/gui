@@ -1979,14 +1979,14 @@ Leveraging @method[editor<%> read-from-file] to read from the editor stream
 
 As a complete example consider the following:
 @racketblock[
-  (define (deserialize-text byte-stream)
-    (define editor (new text% [auto-wrap #t]))
-    (define editor-stream-in-bytes-base (make-object editor-stream-in-bytes-base% byte-stream))
-    (define editor-stream-in (make-object editor-stream-in% editor-stream-in-bytes-base))
-    (read-editor-global-header editor-stream-in)
-    (send editor read-from-file editor-stream-in)
-    (read-editor-global-footer editor-stream-in)
-    editor)]
+(define (deserialize-text byte-stream)
+  (define editor (new text% [auto-wrap #t]))
+  (define editor-stream-in-bytes-base (make-object editor-stream-in-bytes-base% byte-stream))
+  (define editor-stream-in (make-object editor-stream-in% editor-stream-in-bytes-base))
+  (read-editor-global-header editor-stream-in)
+  (send editor read-from-file editor-stream-in)
+  (read-editor-global-footer editor-stream-in)
+  editor)]
 
 @itemize[
 
@@ -2686,11 +2686,11 @@ Leveraging @method[editor<%> write-to-file] to write to the editor stream
 
 As a complete example consider the following:
 @racketblock[
-  (define (serialize-text text)
-    (define editor-stream-out-bytes-base (new editor-stream-out-bytes-base%))
-    (define editor-stream-out (make-object editor-stream-out% editor-stream-out-bytes-base))
-    (write-editor-global-header editor-stream-out)
-    (send text write-to-file editor-stream-out)
-    (write-editor-global-footer editor-stream-out)
-    (send editor-stream-out-bytes-base get-bytes))]
+(define (serialize-text text)
+  (define editor-stream-out-bytes-base (new editor-stream-out-bytes-base%))
+  (define editor-stream-out (make-object editor-stream-out% editor-stream-out-bytes-base))
+  (write-editor-global-header editor-stream-out)
+  (send text write-to-file editor-stream-out)
+  (write-editor-global-footer editor-stream-out)
+  (send editor-stream-out-bytes-base get-bytes))]
 }}
