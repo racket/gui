@@ -22,12 +22,20 @@
  (protect-out dc%
               do-backing-flush
               x11-bitmap%
+              cairo-bitmap%
 
               gdk_gc_new
               gdk_gc_unref
               gdk_gc_set_rgb_fg_color
               gdk_gc_set_line_attributes
-              gdk_draw_rectangle))
+              gdk_draw_rectangle
+
+	      update-canvas-size
+	      reset-gl-context))
+
+(define-local-member-name
+  update-canvas-size
+  reset-gl-context)
 
 (define-gdk gdk_cairo_create (_fun _pointer -> _cairo_t)
   #:wrap (allocator cairo_destroy))
@@ -143,12 +151,35 @@
 (define cairo-bitmap%
   (class bitmap%
     (init w h gtk)
+
+    (define gl #f)
+    (define/public (install-gl-context new-gl) (set! gl new-gl))
+    (define/override (get-bitmap-gl-context) gl)
+
+    (define/override (make-dc)
+      (if gl
+	  (make-object gl-sync-bitmap-dc% this gl)
+	  (super make-dc)))
+
+    (define/override (surface-flush)
+      (when gl (send gl gl-to-cairo-sync))
+      (super surface-flush))
+
     (super-make-object w h #f #t
 		       (if gtk3?
 			   (if gtk
 			       (->screen (exact->inexact (gtk_widget_get_scale_factor gtk)))
 			       (display-bitmap-resolution 0 (lambda () 1.0)))
 			   (->screen 1.0)))))
+
+(define gl-sync-bitmap-dc%
+  (class -bitmap-dc%
+    (init bm gl-context)
+    (define gl gl-context)
+    (define/override (get-cr)
+      (send gl gl-to-cairo-sync)
+      (super get-cr))
+    (super-make-object bm)))
 
 (define win32-bitmap%
   (class bitmap%
@@ -192,6 +223,13 @@
           (let ([v (create-widget-gl-context (send canvas get-client-gtk))])
 	    (when v (set! gl v))
 	    v)))
+
+    (define/public (update-canvas-size x y w h)
+      (when gl
+	(send gl gl-update-size x y w h)))
+
+    (define/public (reset-gl-context mapped?)
+      (when gl (send gl gl-reset-context mapped?)))
 
     (define/override (make-backing-bitmap w h)
       (cond

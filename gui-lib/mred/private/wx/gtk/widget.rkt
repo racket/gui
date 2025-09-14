@@ -16,6 +16,10 @@
               gtk_widget_hide
               gtk_widget_destroy
 
+	      gtk_widget_queue_draw
+	      gtk_widget_get_toplevel
+	      gtk_widget_translate_coordinates
+
               gtk_vbox_new
               gtk_hbox_new
               gtk_box_pack_start
@@ -31,6 +35,13 @@
 (define-gtk gtk_box_pack_start (_fun _GtkWidget _GtkWidget _gboolean _gboolean _uint -> _void))
 (define-gtk gtk_box_pack_end (_fun _GtkWidget _GtkWidget _gboolean _gboolean _uint -> _void))
 (define-gtk gtk_widget_get_parent (_fun _GtkWidget -> (_or-null _GtkWidget)))
+
+(define-gtk gtk_widget_queue_draw (_fun _GtkWidget -> _void))
+(define-gtk gtk_widget_get_toplevel (_fun _GtkWidget -> _GtkWidget))
+(define-gtk gtk_widget_translate_coordinates (_fun _GtkWidget _GtkWidget _int _int
+						   (x : (_ptr o _int)) (y : (_ptr o _int))
+						   -> _gboolean
+						   -> (values x y)))
 
 (define-signal-handler connect-destroy "destroy"
   (_fun _GtkWidget _pointer -> _void)

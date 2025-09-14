@@ -236,7 +236,7 @@
   (lambda (gtk a)
     (let ([wx (gtk->wx gtk)])
       (when wx
-        (send wx save-size 
+        (send wx save-size
               (->normal (GtkAllocation-x a))
               (->normal (GtkAllocation-y a))
               (->normal (GtkAllocation-width a))
@@ -880,6 +880,8 @@
     (define/public (refresh) (refresh-all-children))
 
     (define/public (refresh-all-children) (void))
+
+    (define/public (notify-children-top-realize) (void))
 
     (define/public (screen-to-client x y)
       (internal-screen-to-client x y))

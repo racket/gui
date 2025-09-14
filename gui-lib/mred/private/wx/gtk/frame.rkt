@@ -136,6 +136,13 @@
               (->normal h))))
     #f))
 
+(define-signal-handler connect-map "map"
+  (_fun _GtkWidget _pointer -> _void)
+  (lambda (gtk event)
+    (let ([wx (gtk->wx gtk)])
+      (when wx
+        (send wx notify-children-top-realize)))))
+
 (define-cstruct _GdkEventWindowState ([type _int]
                                       [window _GtkWindow]
                                       [send_event _int8]
@@ -225,6 +232,9 @@
     (gtk_widget_add_events panel-gtk (bitwise-ior GDK_KEY_PRESS_MASK
 						  GDK_KEY_RELEASE_MASK))
     (connect-key panel-gtk)
+
+    (when wayland?
+      (connect-map gtk))
 
     (unless is-dialog?
       (gtk_window_set_icon_list gtk (cdr (force icon-pixbufs+glist))))
@@ -393,6 +403,10 @@
     (define/override (refresh-all-children)
       (when saved-child
         (send saved-child refresh)))
+
+    (define/override (notify-children-top-realize)
+      (when saved-child
+	(send saved-child notify-children-top-realize)))
 
     (define/override (direct-show on?)
       ;; atomic mode

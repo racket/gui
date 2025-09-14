@@ -177,9 +177,12 @@
 (define/top (make-gl-bitmap [exact-positive-integer? w]
                             [exact-positive-integer? h]
                             [gl-config% c])
-  (let ([bm (make-object x11-bitmap% w h #f)])
-    (create-and-install-gl-context bm c)
-    bm))
+  (define bm
+    (cond
+     [wayland? (make-object cairo-bitmap% w h #f)]
+     [else (make-object x11-bitmap% w h #f)]))
+  (create-and-install-gl-context bm c)
+  bm)
 
 (define (check-for-break) #f)
 

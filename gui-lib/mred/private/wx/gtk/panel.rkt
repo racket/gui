@@ -128,6 +128,10 @@
       (for ([child (in-list children)])
         (send child refresh)))
 
+    (define/override (notify-children-top-realize)
+      (for ([child (in-list children)])
+        (send child notify-children-top-realize)))
+
     (define/public (set-item-cursor x y) (void))))
 
 (define (panel-container-mixin %)
