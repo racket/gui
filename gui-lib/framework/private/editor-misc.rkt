@@ -126,6 +126,9 @@
                             input-filename)])
           (with-handlers ([exn:fail?
                            (λ (exn)
+                             ((error-display-handler)
+                              (exn-message exn)
+                              exn)
                              (message-box 
                               (string-constant error-loading)
                               (string-append
