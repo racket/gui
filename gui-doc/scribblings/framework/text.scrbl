@@ -331,9 +331,9 @@
  }
 }
 
-@defmixin[text:inline-overview-mixin (text%) (text:inline-overview<%>)]{
+@defmixin[text:inline-overview-mixin (text%) (text:inline-overview<%>)]{}
 
-}
+@defmixin[text:inline-overview-mpw-mixin (text% text:max-width-paragraph<%>) (text:inline-overview<%>)]{}
 
 @definterface[text:line-spacing<%> (text:basic<%>)]{
    Objects implementing this interface adjust their
@@ -350,6 +350,48 @@
   Also registers a callback (via @racket[preferences:add-callback]) to call
   @method[text% set-line-spacing] when the @racket['framework:line-spacing-add-gap?]
   preference changes.
+}
+
+@definterface[text:max-width-paragraph<%> ()]{
+
+ Text objects implementing this interface track the width of
+ the widest line.
+
+ @defmethod[#:mode public-final (get-max-width-paragraph) natural?]{
+  Returns the index of the widest paragraph, i.e. the value of
+  @racket[para] that maximizes the expression
+  @racketblock[(- (#,(method text% paragraph-end-position) para)
+                  (#,(method text% paragraph-start-position) para))]
+
+  This method will, in some cases, loop over every line of
+  the editor to get its answer but it will cache the result
+  and track when edits happen that do not invalidate its
+  previous response. In those cases, it will just return its
+  cached result.
+
+  }
+
+ @defmethod[#:mode augment (after-max-width-paragraph-change) any]{
+
+  This method is called whenever the result of
+  @method[text:max-paragraph-width<%> get-max-width-paragraph]
+  would change.
+
+  If the current cache for the result of
+  @method[text:max-paragraph-width<%> get-max-width-paragraph]
+  is invalid, then this method will be called, even if the actual
+  maximum width may not have changed. In other words, this method
+  is guaranteed to be called at least as often as the result of
+  @method[text:max-paragraph-width<%> get-max-width-paragraph]
+  changes, but it may be called more often than that.
+
+ }
+
+ @history[#:added "1.78"]
+}
+
+@defmixin[text:max-width-paragraph-mixin (text%) (text:max-paragraph-width<%>)]{
+ @history[#:added "1.78"]
 }
 
 @definterface[text:ascii-art-enlarge-boxes<%> ()]{

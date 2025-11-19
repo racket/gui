@@ -20,7 +20,8 @@
     (move/copy-to-edit-tests)
     (move/copy-to-edit-random-tests)
     (ascii-art-tests)
-    (autocomplete-tests)))
+    (autocomplete-tests)
+    (get-max-width-paragraph-tests)))
 
 (define (highlight-range-tests)
   (check-equal?
@@ -1147,3 +1148,94 @@
                         [key-code #\return]))
 
   (check-equal? (send t get-text) "pqr abcd xyz"))
+
+(define (get-max-width-paragraph-tests)
+  (struct ins (str pos) #:transparent)
+
+  (define (calc-widest t)
+    (define-values (widest-para widest-width)
+      (for/fold ([widest-para 0]
+                 [widest-width 0])
+                ([para (in-inclusive-range 0 (send t last-paragraph))])
+        (define this-width (- (send t paragraph-end-position para)
+                              (send t paragraph-start-position para)))
+        (cond
+          [(<= this-width widest-width)
+           (values widest-para widest-width)]
+          [else
+           (values para this-width)])))
+    widest-para)
+
+  (define (try loins)
+    (define t (new (text:max-width-paragraph-mixin text:basic%)))
+    (for ([a-ins (in-list loins)])
+      (match-define (ins str pos) a-ins)
+      (send t insert str pos))
+    (define should-be (calc-widest t))
+    (define is (send t get-max-width-paragraph))
+    (unless (equal? should-be is)
+      (eprintf "test failed; got ~s expected ~s\n" is should-be)
+      (pretty-print loins (current-error-port))
+      (eprintf "~s\n" (send t get-text))))
+
+  (try '())
+  (try (list (ins "a" 0)))
+  (try (list (ins "a" 0)
+             (ins "\n" 0)
+             (ins "aa" 0)))
+  (try (list (ins "aaaa" 0)
+             (ins "\n" 0)
+             (ins "aa" 0)))
+  (try (list (ins "aaaa" 0)
+             (ins "\n" 4)
+             (ins "aa" 5)))
+  (try (list (ins "aaaa" 0)
+             (ins "\n" 4)
+             (ins "aa" 5)
+             (ins "a" 0)))
+
+  (define (mk)
+    (let loop ([s 0])
+      (cond
+        [(zero? (random 10)) '()]
+        [else
+         (define str
+           (make-string (+ (random 3) 1)
+                        (case (random 4)
+                          [(0) #\a]
+                          [(1) #\b]
+                          [(2) #\c]
+                          [(3) #\newline])))
+         (cons (ins str (random (+ s 1)))
+               (loop (+ s (string-length str))))])))
+
+  (for ([i (in-range 100)])
+    (try (mk)))
+
+  (let ()
+    (define mw #f)
+    (define called? #f)
+    (define t (new (class (text:max-width-paragraph-mixin text:basic%)
+                     (inherit get-max-width-paragraph)
+                     (define/augment (after-max-width-paragraph-change)
+                       (set! called? #t)
+                       (set! mw (get-max-width-paragraph)))
+                     (super-new))))
+    (send t insert "a")
+    (check-equal? mw 0)
+    (send t insert "b\nc")
+    (check-equal? mw 0)
+
+    (send t insert "dddddd")
+    (check-equal? mw 1)
+
+    (send t insert "\n")
+    (check-equal? mw 1)
+
+    (send t insert "a")
+    (check-equal? mw 1)
+
+    (set! called? #f)
+    (send t insert "d")
+    (check-equal? called? #f))
+  )

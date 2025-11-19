@@ -12,6 +12,7 @@
          text-column-guide^
          text-ascii-art^
          text-misc^
+         text-max-width-paragraph^
          text-delegate^
          text-port^
          text-port-class^
@@ -95,7 +96,8 @@
 
 (define-signature text-inline-overview^
   (inline-overview<%>
-   inline-overview-mixin))
+   inline-overview-mixin
+   inline-overview-mpw-mixin))
 
 (define-signature text-first-line^
   (first-line<%>
@@ -124,6 +126,10 @@
    all-string-snips-mixin
    overwrite-disable<%>
    overwrite-disable-mixin))
+
+(define-signature text-max-width-paragraph^
+  (max-width-paragraph-mixin
+   max-width-paragraph<%>))
 
 (define-signature text-mixed-in-classes^
   (basic%

@@ -186,6 +186,7 @@
    (open text-first-line^)
    (open text-inline-overview^)
    (open text-indent-guides^)
+   (open text-max-width-paragraph^)
    (open text-mixed-in-classes^)))
 
 (define-signature text^ extends text-class^

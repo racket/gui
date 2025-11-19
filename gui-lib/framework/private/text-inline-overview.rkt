@@ -23,8 +23,10 @@
 
 (define-unit text-inline-overview@
   (import mred^
-          [prefix color-prefs: framework:color-prefs^])
+          [prefix color-prefs: framework:color-prefs^]
+          [prefix text: text-max-width-paragraph^])
   (export text-inline-overview^)
+  (init-depend text-max-width-paragraph^)
 
   (define transparent-color (make-object color% 255 255 255 0))
   (define extra-blue-parts-margin 10)
@@ -35,8 +37,13 @@
                                set-inline-overview-enabled?
                                is-inline-overview-work-pending?
                                ))
-  (define inline-overview-mixin
-    (mixin ((class->interface text%)) (inline-overview<%>)
+
+  (define (inline-overview-mixin super%)
+    (inline-overview-mpw-mixin
+     (text:max-width-paragraph-mixin super%)))
+
+  (define inline-overview-mpw-mixin
+    (mixin ((class->interface text%) text:max-width-paragraph<%>) (inline-overview<%>)
       (define is-do-a-little-work-enqueued? #f)
       (define invalid-start #f)
       (define invalid-end #f)
@@ -68,7 +75,7 @@
 
       (define/private (reset-entire-overview)
         (define h (last-paragraph))
-        (update-bmp-width 0 h)
+        (update-bmp-width)
         (define to-create-h (+ h 20))
         (unless (and primary-bmp
                      (= (send primary-bmp get-width) bmp-width)
@@ -78,7 +85,7 @@
           (set! known-blank 0))
         (union-invalid 0 h)
         (maybe-queue-do-a-little-work?))
-    
+
       (define/public (get-primary-bmp) primary-bmp)
       (define/public (get-secondary-bmp) secondary-bmp)
     
@@ -92,6 +99,15 @@
         (inner (void) after-load-file success?)
         (set! loading-file? #f)
         (reset-entire-overview))
+
+      (define/augment (after-max-width-paragraph-change)
+        (when enabled?
+          ;; this guard on `enabled?` ensures that we don't ask for
+          ;; the width of the widest line (which can be slow) when
+          ;; the bitmap overview is not shown
+          (when (bitmap-too-big?)
+            (reset-entire-overview)))
+        (inner (void) after-max-width-paragraph-change))
     
       (define/augment (after-insert start len)
         (inner (void) after-insert start len)
@@ -250,7 +266,7 @@
           ;; invalidates only the newly exposed region
           (invalidate-entire-overview-region #f)))
 
-      (define/private (invalidate-entire-overview-region just-union?)
+      (define/private (invalidate-entire-overview-region just-union? #:use-this-width [use-this-width #f])
         (define-values (view-height
                         bitmap-first-visible-paragraph
                         top-paragraph
@@ -259,7 +275,7 @@
                         bitmap-y-coordinate)
           (get-bitmap-placement-info))
         (define x (- bitmap-x-coordinate extra-blue-parts-margin))
-        (define w (+ bmp-width extra-blue-parts-margin))
+        (define w (+ (or use-this-width bmp-width) extra-blue-parts-margin))
         (cond
           [just-union?
            (union-region-to-invalidate x
@@ -411,7 +427,8 @@
                set-position
                scroll-editor-to
                begin-edit-sequence
-               end-edit-sequence)
+               end-edit-sequence
+               get-max-width-paragraph)
     
       (define/private (xy-to-paragraph x y)
         (position-paragraph (find-position x y)))
@@ -436,14 +453,19 @@
       (define/private (clear-invalid)
         (set! invalid-start #f)
         (set! invalid-end #f))
-    
-      (define/private (update-bmp-width ps pe)
-        ;; initialize this to `1` so that we always have a non-empty bitmap
-        (define text-width 1)
-        (for ([i (in-range ps (+ 1 pe))])
-          (define w (- (paragraph-end-position i) (paragraph-start-position i)))
-          (set! text-width (max text-width w)))
-        (when (> text-width bmp-width)
+
+      (define/private (bitmap-too-big?)
+        (define mwp (get-max-width-paragraph))
+        (define text-width (- (paragraph-end-position mwp)
+                              (paragraph-start-position mwp)))
+        (< (+ text-width 50) bmp-width))
+
+      (define/private (update-bmp-width)
+        (define mwp (get-max-width-paragraph))
+        ;; use `max` to ensure that we always have a non-empty bitmap
+        (define text-width (max 1 (- (paragraph-end-position mwp)
+                                     (paragraph-start-position mwp))))
+        (unless (<= text-width bmp-width (+ text-width 40))
           (set! bmp-width (min maximum-bitmap-width (+ 20 text-width))))
         (when (or (not scratch-string)
                   (< (string-length scratch-string) bmp-width))
@@ -481,7 +503,12 @@
                [width-could-have-changed-since-last-do-a-little-work?
                 (set! width-could-have-changed-since-last-do-a-little-work? #f)
                 (define previous-bmp-width bmp-width)
-                (update-bmp-width invalid-start invalid-end)
+                (update-bmp-width)
+                (when (> previous-bmp-width bmp-width)
+                  ;; if the bitmap gets narrower,
+                  ;; the invalidate-entire-overview-region
+                  ;; below won't invalidate a big enough region
+                  (invalidate-entire-overview-region #t #:use-this-width previous-bmp-width))
                 (not (= previous-bmp-width bmp-width))]
                [else #f]))
            (when bmp-width-changed?
