@@ -29,6 +29,7 @@
 
       (define max-width-paragraph #f)
       (define max-width #f)
+      (define mpw-changed-in-on-delete? #f)
 
       (define/public-final (get-max-width-paragraph)
         (unless max-width-paragraph
@@ -37,8 +38,7 @@
 
       (define/private (set-max-widths _max-width-paragraph _max-width)
         (set! max-width-paragraph _max-width-paragraph)
-        (set! max-width _max-width)
-        (after-max-width-paragraph-change))
+        (set! max-width _max-width))
       
       (define/augment (after-insert start len)
         (inner (void) after-insert start len)
@@ -49,10 +49,12 @@
            (cond
              [(< insert-start-para insert-end-para)
               ;; multi-paragraph insertion, just give up on the cache
-              (set-max-widths #f #f)]
+              (set-max-widths #f #f)
+              (after-max-width-paragraph-change)]
              [(= insert-start-para max-width-paragraph)
               ;; we made the max paragraph wider
-              (set-max-widths insert-start-para (get-paragraph-width max-width-paragraph))]
+              (set-max-widths insert-start-para (get-paragraph-width max-width-paragraph))
+              (after-max-width-paragraph-change)]
              [else
               ;; made some other paragraph wider
               (define paragraph-new-width (get-paragraph-width insert-start-para))
@@ -62,7 +64,8 @@
                              (< insert-start-para max-width-paragraph))
                         (< max-width paragraph-new-width))
                 (set-max-widths insert-start-para
-                                paragraph-new-width))])]
+                                paragraph-new-width)
+                (after-max-width-paragraph-change))])]
           [else
            (after-max-width-paragraph-change)]))
 
@@ -75,15 +78,23 @@
            (cond
              [(< delete-start-para delete-end-para)
               ;; multi-paragraph deletion, just give up on the cache
-              (set-max-widths #f #f)]
+              (set-max-widths #f #f)
+              (set! mpw-changed-in-on-delete? #t)]
              [(= delete-start-para max-width-paragraph)
               ;; we made the max paragraph narrower
-              (set-max-widths #f #f)]
+              (set-max-widths #f #f)
+              (set! mpw-changed-in-on-delete? #t)]
              [else
               ;; made some other paragraph narrower
               (void)])]
           [else
-           (after-max-width-paragraph-change)]))
+           (set! mpw-changed-in-on-delete? #t)]))
+
+      (define/augment (after-delete start len)
+        (inner (void) after-delete start len)
+        (when mpw-changed-in-on-delete?
+          (set! mpw-changed-in-on-delete? #f)
+          (after-max-width-paragraph-change)))
 
       (define/private (get-paragraph-width para)
         (- (paragraph-end-position para)
