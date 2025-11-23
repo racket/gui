@@ -50,7 +50,9 @@
                                                  (make-NSSize
                                                   (NSSize-height (NSRect-size r))
                                                   (NSSize-width (NSRect-size r)))))
-                          (tellv cocoa rotateByAngle: #:type _CGFloat -90)))
+                          (tellv cocoa rotateByAngle: #:type _CGFloat (if (version-13.0-or-later?)
+                                                                          90
+                                                                          -90))))
                       cocoa)]
              [callback void]
              [no-show? (memq 'deleted style)])

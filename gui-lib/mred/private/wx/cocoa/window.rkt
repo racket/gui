@@ -41,6 +41,8 @@
 
 (define-local-member-name flip-client)
 
+(define got null)
+
 ;; ----------------------------------------
 
 (define special-control-key? #f)
@@ -734,9 +736,10 @@
     (define/public (block-mouse-events block?)
       (set! block-all-mouse-events? block?))
 
+    (define/public (is-group?) #f)
+
     (define/private (get-frame)
-      (let ([v (tell #:type _NSRect cocoa frame)])
-        v))
+      (tell #:type _NSRect cocoa frame))
 
     (define/public (flip y h)
       (if parent
@@ -797,6 +800,7 @@
 
     (define/public (get-client-size w h)
       ;; May be called in Cocoa event-handling mode
+      (tellv (get-cocoa-content) layoutSubtreeIfNeeded)
       (let ([s (NSRect-size (tell #:type _NSRect (get-cocoa-content) bounds))])
         (set-box! w (->long (ceiling (NSSize-width s))))
         (set-box! h (->long (ceiling (NSSize-height s))))))

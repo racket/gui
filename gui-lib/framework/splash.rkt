@@ -191,12 +191,13 @@
   (unless allow-funny? (set! funny? #f))
   (set! splash-title _splash-title)
   (set! splash-max-width (max 1 (splash-get-preference (get-splash-width-preference-name) width-default)))
-    
+
   (on-splash-eventspace/ret
    (let/ec k
      (define (no-splash)
        (set! splash-bitmap #f)
        (k (void)))
+     (set! splash-range-ready? #t)
      (send (get-gauge) set-range splash-max-width)
      (send splash-tlw set-label splash-title)
      
@@ -280,12 +281,20 @@
          (= (date-day date) 25)
          (= (date-month date) 12))))
 
+;; Don't set the guard value until its extent is intialized.
+;; Otherwise, a guarge of range 1 gets set to 1, which is full, and
+;; then the gauge is changed afterward so that 1 is a tiny fraction,
+;; but that makes animation (if any) bounce (on macOS Tahoe, for
+;; example)
+(define splash-range-ready? #f)
+
 (define (splash-load-handler old-load f expected)
   (set! splash-current-width (+ splash-current-width 1))
   (when (<= splash-current-width splash-max-width)
     (let ([splash-save-width splash-current-width])
       (on-splash-eventspace
-       (send (get-gauge) set-value splash-save-width)
+       (when splash-range-ready?
+         (send (get-gauge) set-value splash-save-width))
        (when (or (not (member (get-gauge) (send gauge-panel get-children)))
                  ;; when the gauge is not visible, we'll redraw the canvas regardless
                  (refresh-splash-on-gauge-change? splash-save-width splash-max-width))

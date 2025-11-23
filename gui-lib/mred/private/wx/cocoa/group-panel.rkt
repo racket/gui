@@ -39,5 +39,7 @@
   (define/override (get-cocoa-cursor-content) 
     (get-cocoa))
 
+  (define/override (is-group?) #t)
+
   (define/public (set-label l)
     (tellv (get-cocoa) setTitle: #:type _NSString l)))
