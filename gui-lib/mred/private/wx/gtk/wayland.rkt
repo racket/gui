@@ -21,7 +21,7 @@
 	 wayland-region-destroy)
 
 (define wayland-lib
-  (and wayland? (ffi-lib "libwayland-client" '("1" "0" ""))))
+  (and wayland? (ffi-lib "libwayland-client" '("0" ""))))
 
 (define-ffi-definer define-wayland wayland-lib
   #:default-make-fail make-not-available)
