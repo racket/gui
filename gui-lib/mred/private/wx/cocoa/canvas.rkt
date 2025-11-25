@@ -12,6 +12,7 @@
          "utils.rkt"
          "const.rkt"
          "types.rkt"
+         "liquid-glass.rkt"
          "window.rkt"
          "frame.rkt"
          "dc.rkt"
@@ -123,7 +124,7 @@
           (tellv ctx saveGraphicsState)
           (let ([cg (tell #:type _CGContextRef ctx graphicsPort)]
                 [r (tell #:type _NSRect self bounds)])
-            (CGContextSetRGBFillColor cg 0 0 0 1.0)
+            (CGContextSetRGBFillColor cg frame-black frame-black frame-black 1.0)
             (let* ([l (NSPoint-x (NSRect-origin r))]
                    [t (NSPoint-y (NSRect-origin r))]
                    [b (+ t (NSSize-height (NSRect-size r)))]
@@ -417,7 +418,8 @@
         (tell (tell (cond
                      [is-combo? NSView]
                      [has-control-border? FocusView]
-                     [(memq 'border style) (if (memq 'vscroll style)
+                     [(memq 'border style) (if (and (memq 'vscroll style)
+                                                    (not liquid-glass?))
                                                CornerlessFrameView
                                                FrameView)]
                      [else NSView])

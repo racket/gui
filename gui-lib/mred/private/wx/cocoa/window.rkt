@@ -738,8 +738,13 @@
 
     (define/public (is-group?) #f)
 
-    (define/private (get-frame)
+    (define/public (get-frame)
+      (tellv cocoa layoutSubtreeIfNeeded)
       (tell #:type _NSRect cocoa frame))
+
+    (define/public (set-frame x y w h)
+      (tellv cocoa setFrame: #:type _NSRect (make-NSRect (make-NSPoint x (flip y h))
+                                                         (make-NSSize w h))))
 
     (define/public (flip y h)
       (if parent
@@ -810,8 +815,7 @@
             [y (if (not y) (get-y) y)])
         ;; old location will need refresh:
         (tellv cocoa setNeedsDisplay: #:type _BOOL #t)
-        (tellv cocoa setFrame: #:type _NSRect (make-NSRect (make-NSPoint x (flip y h))
-                                                           (make-NSSize w h)))
+        (set-frame x y w h)
         ;; new location needs refresh:
         (tellv cocoa setNeedsDisplay: #:type _BOOL #t))
       (queue-on-size))

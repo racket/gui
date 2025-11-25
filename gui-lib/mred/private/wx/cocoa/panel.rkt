@@ -7,19 +7,25 @@
          "utils.rkt"
          "cg.rkt"
          "window.rkt"
-         "procs.rkt")
+         "procs.rkt"
+         "liquid-glass.rkt")
 
 (provide 
  (protect-out panel%
               panel-mixin
 
-              FrameView))
+              FrameView
+              frame-black
+              frame-white))
 
 (import-class NSView NSGraphicsContext)
 
 (define-objc-class RacketPanelView NSView
   #:mixins (KeyMouseTextResponder CursorDisplayer)
   [wxb])
+
+(define frame-black (if liquid-glass? 0.7 0))
+(define frame-white (if liquid-glass? 0.5 0.8))
 
 (define-objc-class FrameView NSView 
   []
@@ -33,10 +39,10 @@
           (cond
             [wob?
              (CGContextSetRGBFillColor cg 0 0 0 1.0)
-             (CGContextSetRGBStrokeColor cg 0.8 0.8 0.8 1.0)]
+             (CGContextSetRGBStrokeColor cg frame-white frame-white frame-white 1.0)]
             [else
              (CGContextSetRGBFillColor cg 1.0 1.0 1.0 1.0)
-             (CGContextSetRGBStrokeColor cg 0 0 0 1.0)])
+             (CGContextSetRGBStrokeColor cg frame-black frame-black frame-black 1.0)])
           (CGContextAddRect cg r)
           (CGContextStrokePath cg))
         (tellv ctx restoreGraphicsState))))

@@ -6,6 +6,7 @@
          "utils.rkt"
          "const.rkt"
          "types.rkt"
+         "liquid-glass.rkt"
          "window.rkt"
          "queue.rkt"
          "menu-bar.rkt"
@@ -28,7 +29,7 @@
 
 (import-class NSWindow NSGraphicsContext NSMenu NSPanel
               NSApplication NSAutoreleasePool NSScreen
-              NSToolbar NSArray)
+              NSToolbar NSArray NSView)
 
 (define NSWindowCloseButton 0)
 (define NSWindowToolbarButton 3)
@@ -319,12 +320,37 @@
 
     (tellv cocoa setAcceptsMouseMovedEvents: #:type _BOOL #t)
 
+    (define inner-content-view
+      (cond
+        [(and is-dialog? liquid-glass?)
+         (import-class NSLayoutConstraint)
+         (define cv (tell (tell NSView alloc) init))
+         (define win (tell cocoa contentView))
+         (define margin 10)
+         (tellv win addSubview: cv)
+         (tellv cv setTranslatesAutoresizingMaskIntoConstraints: #:type _BOOL #false)
+         (tellv NSLayoutConstraint
+                activateConstraints:
+                (tell NSArray
+                      arrayWithObjects: #:type (_list i _id)
+                      (list
+                       (tell (tell cv topAnchor) constraintEqualToAnchor: (tell win topAnchor) constant: #:type _CGFloat margin)
+                       (tell (tell cv leadingAnchor) constraintEqualToAnchor: (tell win leadingAnchor) constant: #:type _CGFloat margin)
+                       (tell (tell cv trailingAnchor) constraintEqualToAnchor: (tell win trailingAnchor) constant: #:type _CGFloat (- margin))
+                       (tell (tell cv bottomAnchor) constraintEqualToAnchor: (tell win bottomAnchor) constant: #:type _CGFloat (- margin)))
+                      count: #:type _NSUInteger 4))
+         cv]
+        [else #f]))
+
     ;; Setting the window in one-shot mode helps prevent the
     ;;  frame from being resurrected by a click on the dock icon.
     (tellv cocoa setOneShot: #:type _BOOL #t)
 
+    (define/override (get-frame)
+      (tell #:type _NSRect cocoa frame))
+
     (define/override (get-cocoa-content) 
-      (tell cocoa contentView))
+      (or inner-content-view (tell cocoa contentView)))
     (define/override (get-cocoa-window) cocoa)
     (define/override (get-wx-window) this)
 

@@ -8,6 +8,7 @@
          "types.rkt"
          "const.rkt"
          "utils.rkt"
+         "liquid-glass.rkt"
          "window.rkt"
          "../common/event.rkt"
          "image.rkt")
@@ -85,7 +86,9 @@
                                            RacketImageButtonCell)
                             numberOfRows: #:type _NSInteger (if horiz? 1 (length labels))
                             numberOfColumns: #:type _NSInteger (if horiz? (length labels) 1)))])
-                (tellv cocoa setIntercellSpacing: #:type _NSSize (make-NSSize 2 2))
+                (tellv cocoa setIntercellSpacing: #:type _NSSize (if liquid-glass?
+                                                                     (make-NSSize 5 5)
+                                                                     (make-NSSize 2 2)))
                 (for ([label (in-list labels)]
                       [i (in-naturals)])
                   (let ([button (tell cocoa 
