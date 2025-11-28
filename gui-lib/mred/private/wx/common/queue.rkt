@@ -495,24 +495,25 @@
             (wait-now))]))]))
 
 (define (yield/no-sync)
-  (let ([e (current-eventspace)])
-    (when (eq? (current-thread) (eventspace-handler-thread e))
-      (let ([v (sync/timeout 0 ((eventspace-queue-proc e) #f #f #f))])
-        (if v
-            (begin (handle-event v e) #t)
-            #f)))))
+  (define e (current-eventspace))
+  (and (eq? (current-thread) (eventspace-handler-thread e))
+       (let ([v (sync/timeout 0 ((eventspace-queue-proc e) #f #f #f))])
+         (if v
+             (begin
+               (handle-event v e)
+               #t)
+             #f))))
 
-(define yield-refresh
-  (lambda ()
-    (let ([e (current-eventspace)])
-      (and (eq? (current-thread) (eventspace-handler-thread e))
-           (let loop ([result #f])
-             (let ([v (sync/timeout 0 ((eventspace-queue-proc e) #t #f #t))])
-               (if v
-                   (begin
-                     (handle-event v e)
-                     (loop #t))
-                   result)))))))
+(define (yield-refresh)
+  (define e (current-eventspace))
+  (and (eq? (current-thread) (eventspace-handler-thread e))
+       (let loop ([result #f])
+         (let ([v (sync/timeout 0 ((eventspace-queue-proc e) #t #f #t))])
+           (if v
+               (begin
+                 (handle-event v e)
+                 (loop #t))
+               result)))))
 
 (define (eventspace-event-evt [e (current-eventspace)])
   (unless (eventspace? e)
