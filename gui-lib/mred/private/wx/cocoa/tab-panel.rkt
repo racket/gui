@@ -15,7 +15,8 @@
          (for-syntax racket/base))
 
 (provide 
- (protect-out tab-panel%))
+ (protect-out tab-panel%
+              tab-panel-available?))
 
 (define-runtime-path psm-tab-bar-dir
   '(so "PSMTabBarControl.framework"))
@@ -29,9 +30,14 @@
        (directory-exists? mm-tab-bar-dir)))
 
 ;; Load MMTabBarView or PSMTabBarControl:
-(if use-mm?
-    (void (ffi-lib (build-path mm-tab-bar-dir "MMTabBarView")))
-    (void (ffi-lib (build-path psm-tab-bar-dir "PSMTabBarControl"))))
+(define tab-ok?
+  (if use-mm?
+      (and (ffi-lib (build-path mm-tab-bar-dir "MMTabBarView") #:fail (lambda () #f))
+           'mm)
+      (and (ffi-lib (build-path psm-tab-bar-dir "PSMTabBarControl") #:fail (lambda () #f))
+           'psm)))
+(define (tab-panel-available?) tab-ok?)
+
 (define NSNoTabsNoBorder 6)
 
 (define NSDefaultControlTint 0)
@@ -39,13 +45,14 @@
 
 (import-class NSView NSTabView NSTabViewItem)
 (define TabBarControl
-  (if use-mm?
-      (let ()
-        (import-class MMTabBarView)
-        MMTabBarView)
-      (let ()
-        (import-class PSMTabBarControl)
-        PSMTabBarControl)))
+  (cond
+    [(not tab-ok?) #f]
+    [use-mm?
+     (import-class MMTabBarView)
+     MMTabBarView]
+    [else
+     (import-class PSMTabBarControl)
+     PSMTabBarControl]))
 (import-protocol NSTabViewDelegate)
 
 (define NSOrderedAscending -1)

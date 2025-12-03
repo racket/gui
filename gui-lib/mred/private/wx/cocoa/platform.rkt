@@ -96,4 +96,5 @@
    key-symbol-to-menu-key
    needs-grow-box-spacer?
    graphical-system-type
-   white-on-black-panel-scheme?))
+   white-on-black-panel-scheme?
+   tab-panel-available?))

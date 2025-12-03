@@ -99,7 +99,8 @@
    key-symbol-to-menu-key
    needs-grow-box-spacer?
    graphical-system-type
-   white-on-black-panel-scheme?))
+   white-on-black-panel-scheme?
+   tab-panel-available?))
 
 (define (white-on-black-panel-scheme?)
   ;; if the background and foreground are the same
@@ -107,3 +108,5 @@
   ;; in that case we want to return #f.
   (< (luminance (get-label-background-color))
      (luminance (get-label-foreground-color))))
+
+(define (tab-panel-available?) #t)

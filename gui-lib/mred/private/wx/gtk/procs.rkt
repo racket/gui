@@ -65,7 +65,8 @@
  get-color-from-user
  key-symbol-to-menu-key
  needs-grow-box-spacer?
- graphical-system-type)
+ graphical-system-type
+ tab-panel-available?)
 
 (define (find-graphical-system-path what)
   (case what
@@ -200,3 +201,5 @@
   ;; in that case we want to return #f.
   (< (luminance (get-label-background-color))
      (luminance (get-label-foreground-color))))
+
+(define (tab-panel-available?) #t)

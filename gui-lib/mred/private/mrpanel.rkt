@@ -11,7 +11,8 @@
          "mrwindow.rkt"
          "mrcontainer.rkt"
          "wxtabcanvas.rkt"
-         "gdi.rkt")
+         "gdi.rkt"
+         (only-in "wx/platform.rkt" tab-panel-available?))
 
 (provide pane%
          vertical-pane%
@@ -320,7 +321,8 @@
              [get-orientation (λ () (send (mred->wx this) get-orientation))])))
 
 (define list-append append)
-(define always-use-tab-canvas? (and (getenv "PLT_FLAT_PORTABLE_TAB_PANEL") #t))
+(define always-use-tab-canvas? (or (and (getenv "PLT_FLAT_PORTABLE_TAB_PANEL") #t)
+                                   (not (tab-panel-available?))))
 
 (define tab-panel%
   (class vertical-panel%
