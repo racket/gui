@@ -198,10 +198,10 @@
                #:keep keep))
         (void/reference-sink keep)
         ans]
-       [(version-10.6-or-later?)
+       [(version-10.7-or-later?)
         (tell (get) colorUsingColorSpace: (tell NSColorSpace deviceRGBColorSpace))]
        [else
-        ;; In 10.5, `colorUsingColorSpace:` with (tell NSColorSpace deviceRGBColorSpace)`
+        ;; In 10.6 and earlier, `colorUsingColorSpace:` with (tell NSColorSpace deviceRGBColorSpace)`
         ;; doesn't produce a color with RGB components
         (tell (get) colorUsingColorSpaceName: #:type _NSString "NSDeviceRGBColorSpace")])))
   (define (as-color v)
