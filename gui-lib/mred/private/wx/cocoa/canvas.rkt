@@ -3,7 +3,7 @@
          ffi/unsafe
          ffi/unsafe/collect-callback
          racket/class
-         racket/draw
+         (only-in racket/draw color% gl-config%)
          racket/draw/private/gl-context
          (except-in racket/draw/private/color
                     color% make-color)
