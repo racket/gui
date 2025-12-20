@@ -473,6 +473,10 @@
 
      (send dc start-backing-retained)
 
+     (when (and (version-14.0-or-later?)
+                (is-panel?))
+       (tellv content-cocoa setClipsToBounds: #:type _BOOL #true))
+
      (queue-paint)
 
      (define/public (is-panel?) #f)
