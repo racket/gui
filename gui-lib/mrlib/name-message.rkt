@@ -27,6 +27,7 @@
         [grabbed? boolean?]
         [button-label-font (is-a?/c font%)]
         [bkg-color (or/c #f (is-a?/c color%) string?)])
+       (#:wob? [wob? boolean?])
        #:pre (w h)
        (w . > . (- h (* 2 border-inset)))
        [result void?])]
@@ -46,6 +47,8 @@
     (inherit popup-menu get-dc get-size get-client-size min-width min-height
              stretchable-width stretchable-height
              get-top-level-window refresh)
+
+    (define/public (wob?) (white-on-black-panel-scheme?))
 
     (define short-title? #f)
 
@@ -196,7 +199,8 @@
       (unless hidden?
         (when (and (> w 5) (> h 5))
           (draw-button-label dc to-draw-message 0 0 w h mouse-over? mouse-grabbed?
-                             font (get-background-color)))))
+                             font (get-background-color)
+                             #:wob? (wob?)))))
 
     (define/public (get-background-color) #f)
 
@@ -239,19 +243,20 @@
                            [(macosx) "darkgray"]
                            [else (make-object color% 230 230 230)]))
 (define mouse-over-color-white-on-black (make-object color% 20 20 20))
-(define (get-mouse-over-color) (if (white-on-black-panel-scheme?)
-                                   mouse-over-color-white-on-black
-                                   mouse-over-color))
+(define (get-mouse-over-color wob?)
+  (if wob?
+      mouse-over-color-white-on-black
+      mouse-over-color))
 (define mouse-grabbed-color (make-object color% 100 100 100))
 (define mouse-grabbed-color-white-on-black (make-object color% 155 155 155))
-(define (get-mouse-grabbed-color)
-  (if (white-on-black-panel-scheme?)
+(define (get-mouse-grabbed-color wob?)
+  (if wob?
       mouse-grabbed-color-white-on-black
       mouse-grabbed-color))
 (define grabbed-fg-color (make-object color% 220 220 220))
 (define grabbed-fg-color-white-on-black (make-object color% 30 30 30))
-(define (get-grabbed-fg-color)
-  (if (white-on-black-panel-scheme?)
+(define (get-grabbed-fg-color wob?)
+  (if wob?
       grabbed-fg-color-white-on-black
       grabbed-fg-color))
 
@@ -259,8 +264,8 @@
 (define triangle-height 14)
 (define triangle-color (make-object color% 50 50 50))
 (define triangle-color-white-on-black (make-object color% 200 200 200))
-(define (get-triangle-color)
-  (if (white-on-black-panel-scheme?)
+(define (get-triangle-color wob?)
+  (if wob?
       triangle-color-white-on-black
       triangle-color))
 
@@ -293,7 +298,8 @@
    ans-w
    ans-h))
 
-(define (draw-button-label dc label dx dy full-w h mouse-over? grabbed? button-label-font bkg-color)
+(define (draw-button-label dc label dx dy full-w h mouse-over? grabbed? button-label-font bkg-color
+                           #:wob? [wob? (white-on-black-panel-scheme?)])
 
   (define label-width
     (if label
@@ -312,8 +318,8 @@
 
   (when (or mouse-over? grabbed?)
     (define color (if grabbed?
-                      (get-mouse-grabbed-color)
-                      (get-mouse-over-color)))
+                      (get-mouse-grabbed-color wob?)
+                      (get-mouse-over-color wob?)))
     (define xh (- h (* 2 border-inset)))
     (case (system-type)
       [(macosx)
@@ -337,14 +343,14 @@
              (+ dx (- w (quotient xh 2)))
              (+ dy (- h 1 border-inset)))]
       [else
-       (send dc set-pen (send the-pen-list find-or-create-pen (get-triangle-color) 1 'solid))
+       (send dc set-pen (send the-pen-list find-or-create-pen (get-triangle-color wob?) 1 'solid))
        (send dc set-brush (send the-brush-list find-or-create-brush color 'solid))
        (send dc draw-rounded-rectangle
              (+ dx rrect-spacer) (+ dy border-inset)
              (- w border-inset rrect-spacer) xh 2)]))
 
   (when label
-    (send dc set-text-foreground (if grabbed? (get-grabbed-fg-color) (get-label-foreground-color)))
+    (send dc set-text-foreground (if grabbed? (get-grabbed-fg-color wob?) (get-label-foreground-color)))
     (send dc set-font button-label-font)
     (define-values (tw th _1 _2) (send dc get-text-extent label))
     (send dc draw-text label
@@ -353,7 +359,7 @@
           #t))
 
   (send dc set-pen "black" 1 'transparent)
-  (send dc set-brush (if grabbed? (get-grabbed-fg-color) (get-triangle-color)) 'solid)
+  (send dc set-brush (if grabbed? (get-grabbed-fg-color wob?) (get-triangle-color wob?)) 'solid)
   (define x (- w triangle-width circle-spacer border-inset))
   (define y (- (/ h 2) (/ triangle-height 2)))
   (define ul-x (+ x 1))

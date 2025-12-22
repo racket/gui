@@ -100,6 +100,14 @@ current label.
 By default, the name-message does not allow shrinking.
 }
 
+@defmethod[(wob?) boolean?]{
+  Determines if the name message drawn in dark mode (when it returns @racket[#true]) or
+  light mode (when it returns @racket[#false]). Returns @racket[(white-on-black-panel-scheme?)]
+  by default.
+
+  @history[#:added "1.79"]
+ }
+
 }
 
 @; ----------------------------------------------------------------------
