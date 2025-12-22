@@ -385,7 +385,14 @@
      add-color-scheme-entry
      register-info-based-color-schemes
      get-color-scheme-names
-     get-inverted-base-color-scheme))
+     get-inverted-base-color-scheme
+
+     white-on-black-color-scheme?))
+  (define-signature color-prefs/int^ extends color-prefs^
+    (change-colors-to-match-color-scheme
+     lookup-color-scheme
+     built-in-wob-color-scheme
+     built-in-color-scheme))
   
   (define-signature racket-class^
     (text<%>

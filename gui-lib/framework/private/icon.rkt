@@ -28,7 +28,8 @@
 (define-runtime-path left-right-csr-path '(lib "left-right-cursor.xbm" "icons"))
 
 (define-unit icon@
-  (import mred^)
+  (import mred^
+          [prefix color-prefs: framework:color-prefs^])
   (export framework:icon^)
   
   (define eof-bitmap (delay/sync (let ([bm (make-object bitmap% eof-bitmap-path)])
@@ -86,12 +87,12 @@
   
   (define (get-gc-on-bitmap)
     (force
-     (if (white-on-black-panel-scheme?)
+     (if (color-prefs:white-on-black-color-scheme?)
          gc-wob-on-bitmap
          gc-on-bitmap)))
   
   (define (get-gc-off-bitmap)
     (force
-     (if (white-on-black-panel-scheme?)
+     (if (color-prefs:white-on-black-color-scheme?)
          gc-wob-off-bitmap
          gc-off-bitmap))))

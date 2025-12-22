@@ -2,6 +2,7 @@
 (require racket/class
          racket/contract
          racket/list
+         racket/match
          "sig.rkt"
          "../preferences.rkt"
          mred/mred-sig
@@ -14,13 +15,13 @@
         [prefix group: framework:group^]
         [prefix handler: framework:handler^]
         [prefix editor: framework:editor^]
-        [prefix color-prefs: framework:color-prefs^]
+        [prefix color-prefs: framework:color-prefs/int^]
         [prefix racket: framework:racket^]
         [prefix early-init: framework:early-init^]
         [prefix color: framework:color^])
 (export framework:main^)
 (init-depend framework:preferences^ framework:exit^ framework:editor^
-             framework:color-prefs^ framework:racket^ framework:early-init^)
+             framework:color-prefs/int^ framework:racket^ framework:early-init^)
 
 (preferences:low-level-get-preference preferences:get-preference/gui)
 (preferences:low-level-put-preferences preferences:put-preferences/gui)
@@ -42,10 +43,13 @@
 
 (preferences:set-default 'framework:ascii-art-enlarge #f boolean?)
 
+;; the name of the color scheme that the user prefers when in black-on-white mode
 (preferences:set-default 'framework:color-scheme
-                         (if (white-on-black-panel-scheme?)
-                             'white-on-black
-                             'classic)
+                         'classic
+                         symbol?)
+;; the name of the color scheme that the user prefers when in white-on-black mode
+(preferences:set-default 'framework:color-scheme-wob
+                         'white-on-black
                          symbol?)
 
 (preferences:set-default 'framework:column-guide-width
@@ -225,7 +229,30 @@
 
 (set-square-bracket-nonum-pref 'framework:square-bracket:for/fold for/folds)
 
-(preferences:set-default 'framework:white-on-black? (white-on-black-panel-scheme?) boolean?)
+;; either:
+;;        #t (meaning we always treat it as white-on-black mode)
+;;        #f (meaning we always treat it as black-on-white mode), or
+;; 'platform (meaning we use `white-on-black-panel-scheme?` to determine what to do)
+(preferences:set-default 'framework:white-on-black-mode?
+                         (case (system-type)
+                           [(windows) #f]
+                           [else 'platform])
+                         (or/c boolean? 'platform))
+
+;; this is an old setting that has been replaced with 'framework:white-on-black-mode?
+;; we keep its value up to date for backwards compatibility
+(preferences:set-default 'framework:white-on-black?
+                         #f
+                         boolean?)
+(define (update-white-on-black-pref val)
+  (preferences:set 'framework:white-on-black?
+                   (match val
+                     ['platform (white-on-black-panel-scheme?)]
+                     [#t #t]
+                     [#f #f])))
+(preferences:add-callback 'framework:white-on-black-mode?
+                          (λ (_ val) (update-white-on-black-pref val)))
+(update-white-on-black-pref (preferences:get 'framework:white-on-black-mode?))
 
 (preferences:set-default 'framework:case-sensitive-search?
                          #f
@@ -572,9 +599,51 @@
 
 (application-dark-mode-handler
  (λ ()
-   (define inverted-name
-     (color-prefs:get-inverted-base-color-scheme
-      (color-prefs:get-current-color-scheme-name)))
-   (when inverted-name
-     (color-prefs:set-current-color-scheme
-      inverted-name))))
+   ;; under windows, this handler is never called
+   ;; and the decorations are never in white-on-black
+   ;; mode (alas).
+   (when (equal? (preferences:get 'framework:white-on-black-mode?)
+                 'platform)
+     (define pref
+       (if (white-on-black-panel-scheme?)
+           'framework:color-scheme-wob
+           'framework:color-scheme))
+     (define scheme-name (preferences:get pref))
+     (color-prefs:change-colors-to-match-color-scheme
+      (or (color-prefs:lookup-color-scheme scheme-name)
+          (if (white-on-black-panel-scheme?)
+              (color-prefs:built-in-wob-color-scheme)
+              (color-prefs:built-in-color-scheme)))))))
+
+(preferences:add-callback
+ 'framework:color-scheme
+ (λ (sym val)
+   (unless (color-prefs:white-on-black-color-scheme?)
+     (color-prefs:change-colors-to-match-color-scheme
+      (or (color-prefs:lookup-color-scheme val)
+          (color-prefs:built-in-color-scheme))))))
+
+(preferences:add-callback
+ 'framework:color-scheme-wob
+ (λ (sym val)
+   (when (color-prefs:white-on-black-color-scheme?)
+     (color-prefs:change-colors-to-match-color-scheme
+      (or (color-prefs:lookup-color-scheme val)
+          (color-prefs:built-in-wob-color-scheme))))))
+
+(preferences:add-callback
+ 'framework:white-on-black-mode?
+ (λ (sym val)
+   (define wob?
+     (match val
+       ['platform (white-on-black-panel-scheme?)]
+       [#t #t]
+       [#f #f]))
+   (define pref-name (if wob? 'framework:color-scheme-wob 'framework:color-scheme))
+   (define pref-val (preferences:get pref-name))
+   (define found-color-scheme (color-prefs:lookup-color-scheme pref-val))
+   (color-prefs:change-colors-to-match-color-scheme
+    (or found-color-scheme
+        (if wob?
+            (color-prefs:built-in-wob-color-scheme)
+            (color-prefs:built-in-color-scheme))))))

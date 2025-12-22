@@ -23,7 +23,8 @@
         [prefix text: framework:text^]
         [prefix pasteboard: framework:pasteboard^]
         [prefix frame: framework:frame^]
-        [prefix handler: framework:handler^])
+        [prefix handler: framework:handler^]
+        [prefix color-prefs: framework:color-prefs^])
 (export (rename editor-misc^
                 [-keymap<%> keymap<%>]))
 (init-depend mred^ framework:autosave^)
@@ -833,7 +834,7 @@
     (define/override (on-paint)
       (define dc (get-dc))
       (define text-foreground (send dc get-text-foreground))
-      (when (white-on-black-panel-scheme?)
+      (when (color-prefs:white-on-black-color-scheme?)
         (send dc set-text-foreground "white"))
       (define-values (cw ch) (get-client-size))
       (define-values (tot-th tot-tw)

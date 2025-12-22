@@ -18,7 +18,8 @@
           [text : framework:text^]
           [pasteboard : framework:pasteboard^]
           [frame : framework:frame^]
-          [handler : framework:handler^])
+          [handler : framework:handler^]
+          [color-prefs : framework:color-prefs^])
 
   (export editor-misc^
           editor-autoload^)
@@ -36,6 +37,7 @@
           (prefix pasteboard: framework:pasteboard^)
           (prefix frame: framework:frame^)
           framework:handler^
+          [prefix color-prefs: framework:color-prefs^]
           )
   (export framework:editor^)
   ((editor-misc^ editor-autoload^)
@@ -48,4 +50,5 @@
    (prefix text: framework:text^)
    (prefix pasteboard: framework:pasteboard^)
    (prefix frame: framework:frame^)
-   framework:handler^))
+   framework:handler^
+   (prefix color-prefs: framework:color-prefs^)))

@@ -1,7 +1,8 @@
 #lang scheme/base
 
 (require scheme/gui/base
-         racket/class)
+         racket/class
+         "wob-color-scheme.rkt")
 
 (provide editor-snip:decorated%
          editor-snip:decorated-snipclass%
@@ -29,7 +30,7 @@
     (define/public (get-corner-bitmap) #f)
     
     ;; get-color : -> (union string (is-a?/c color%))
-    (define/public (get-color) (if (preferences:get 'framework:white-on-black?) "white" "black"))
+    (define/public (get-color) (if (white-on-black-color-scheme?) "white" "black"))
     
     ;; get-menu : -> (union #f (is-a?/c popup-menu%))
     ;; returns the popup menu that should appear
@@ -103,7 +104,7 @@
         (super draw dc x y left top right bottom dx dy draw-caret)
         (let* ([old-pen (send dc get-pen)]
                [old-brush (send dc get-brush)]
-               [white-on-black? (preferences:get 'framework:white-on-black?)])
+               [white-on-black? (white-on-black-color-scheme?)])
           
           (send dc set-pen (send the-pen-list find-or-create-pen 
                                  (if white-on-black? "black" "white")

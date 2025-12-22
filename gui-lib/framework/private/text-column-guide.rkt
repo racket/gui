@@ -1,6 +1,8 @@
 #lang racket/base
 (require racket/unit
          racket/class
+         racket/match
+         mrlib/panel-wob
          mred/mred-sig
          "text-sig.rkt"
          "../preferences.rkt")
@@ -22,9 +24,14 @@
       ;; these two functions are defined as private fields
       ;; because they are weakly held callbacks
       (define (bw-cb p v)
+        (define wob?
+          (match v
+            ['platform (white-on-black-panel-scheme?)]
+            [#t #t]
+            [#f #f]))
         (set! pen 
               (send the-pen-list find-or-create-pen
-                    (if v
+                    (if wob?
                         (make-object color% 225 225 51)
                         (make-object color% 204 204 51))
                     (* column-guide-mixin-pen-size 2)
@@ -49,8 +56,8 @@
       
       (super-new)
     
-      (preferences:add-callback 'framework:white-on-black? bw-cb #t)
-      (bw-cb 'ignored-arg (preferences:get 'framework:white-on-black?))
+      (preferences:add-callback 'framework:white-on-black-mode? bw-cb #t)
+      (bw-cb 'ignored-arg (preferences:get 'framework:white-on-black-mode?))
     
       (preferences:add-callback 'framework:column-guide-width cw-cb #t)
       (cw-cb 'ignored-arg (preferences:get 'framework:column-guide-width))

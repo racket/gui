@@ -4,6 +4,7 @@
          mred/mred-sig
          "text-sig.rkt"
          "interfaces.rkt"
+         "wob-color-scheme.rkt"
          "../preferences.rkt")
 (provide text-first-line@)
 
@@ -163,7 +164,7 @@
                 (define old-font (send dc get-font))
                 (define old-text-foreground (send dc get-text-foreground))
                 (define old-text-mode (send dc get-text-mode))
-                (define w-o-b? (preferences:get 'framework:white-on-black?))
+                (define w-o-b? (white-on-black-color-scheme?))
                 (send dc set-font (get-font))
                 (send dc set-smoothing 'aligned)
                 (send dc set-text-mode 'transparent)

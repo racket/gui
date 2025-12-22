@@ -16,6 +16,7 @@
           [prefix frame: framework:frame^]
           [prefix editor: framework:editor^]
           [prefix keymap: framework:keymap^]
+          [prefix color-prefs: framework:color-prefs^]
           text-basic^)
   (export text-search^)
 
@@ -264,7 +265,7 @@
                   (when (find-string searching-str 'forward start end #t case-sensitive?)
                     (set! clear-yellow (highlight-range
                                         start end
-                                        (if (preferences:get 'framework:white-on-black?)
+                                        (if (color-prefs:white-on-black-color-scheme?)
                                             white-on-black-yellow-bubble-color
                                             "khaki")
                                         #f 'low 'ellipse))))

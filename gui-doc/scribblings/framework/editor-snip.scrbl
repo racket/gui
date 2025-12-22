@@ -33,7 +33,7 @@
   }
   @defmethod[(get-color) (or/c string? (is-a?/c color%))]{
      Returns @racketblock[
-       (if (preferences:get 'framework:white-on-black?)
+       (if (color-prefs:white-on-black-color-scheme?)
            "white" 
            "black")]
   }

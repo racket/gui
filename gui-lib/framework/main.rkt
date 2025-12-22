@@ -31,7 +31,7 @@
 
 (require (for-doc racket/base scribble/manual framework/private/mapdesc
                   setup/getinfo racket/pretty string-constants
-                  (for-label string-constants racket/pretty)))
+                  (for-label racket/file string-constants racket/pretty)))
 
 (provide-signature-elements
  (prefix application: framework:application-class^)
@@ -2069,7 +2069,7 @@ are currently open in tabs.
       void?)
   (pref-sym black-on-white-color white-on-black-color)
   @{Registers a preference whose value will be updated when the user clicks on
-    one of the color scheme default settings in the preferences dialog, but
+    one of the @tech{color scheme} default settings in the preferences dialog, but
     does not give it a name that can be configured by a color scheme; consider using
     @racket[color-prefs:add-color-scheme-entry] instead.
     
@@ -2087,7 +2087,7 @@ are currently open in tabs.
    ((white-on-black-color #f)
     (background #f)))
   @{This function registers a color preference but does not give it
-    a name that can be configured by a color scheme; consider using
+    a name that can be configured by a @tech{color scheme}; consider using
     @racket[color-prefs:add-color-scheme-entry] instead.
 
     This function calls @racket[preferences:set-default] and
@@ -2175,10 +2175,30 @@ the color selection buttons all have the same size.
 
  (proc-doc/names
   color-prefs:unmarshall-style-delta
-  (-> printable/c (or/c false/c (is-a?/c style-delta%)))
+  (-> printable/c (or/c #f (is-a?/c style-delta%)))
   (marshalled-style-delta)
   @{Builds a style delta from its printed representation.  Returns @racket[#f]
     if the printed form cannot be parsed.})
+
+ (proc-doc/names
+  color-prefs:white-on-black-color-scheme?
+  (-> boolean?)
+  ()
+  @{
+
+Returns @racket[#true] if the current @tech{color scheme} is in dark mode
+(i.e. has a light foreground with a dark background) and
+@racket[#false] if it is in light mode (i.e. a dark foreground with
+a light background).
+
+This function uses the @racket['framework:white-on-black-mode?] preference;
+returning its value if it is a boolean and using @racket[white-on-black-panel-scheme?] if
+it is set to @racket['platform]. This function is intended
+to be used in place of @racket[white-on-black-panel-scheme?]
+for code that supports @tech{color scheme}s.
+
+@history[#:added "1.79"]
+})
 
  (proc-doc/names
   color-prefs:white-on-black
@@ -2211,7 +2231,7 @@ the color selection buttons all have the same size.
                         #f)])
        [result void?])
   (#f #f #f #f #f)
-  @{Registers a new color or style named @racket[name] for use in the color schemes. 
+  @{Registers a new color or style named @racket[name] for use in the @tech{color schemes}.
     If @racket[style] is not @racket[#f], a new style is registered; if not a color is
     registered.
 
@@ -2229,7 +2249,7 @@ the color selection buttons all have the same size.
   (() ((extras void)))
   @{Adds a panel for choosing a color-scheme to the preferences dialog.
     
-    The @racket[extras] argument is called after the color schemes have been added
+    The @racket[extras] argument is called after the @tech{color schemes} have been added
     to the preferences panel. It is passed the panel containing the color schemes
     and can add items to it.})
  
@@ -2241,7 +2261,7 @@ the color selection buttons all have the same size.
     @index{framework:color-schemes}
     @racket['framework:color-schemes]. Each definition must bind
     a list of hash tables, each of which introduces a new
-    color scheme. Each hash table should have keys that specify
+    @deftech{color scheme}. Each hash table should have keys that specify
     details of the color scheme, as follows:
     @itemlist[@item{@racket['name]: must be either a string or a symbol;
                      it names the entire color scheme.
@@ -2254,15 +2274,10 @@ the color selection buttons all have the same size.
                       color-scheme is based on an inverted color scheme. If absent, it
                       is @racket[#f].}
               @item{@racket['inverted-base-name]: must be a
-               symbol or @racket[#f]. If it is a symbol, the symbol
-               indicates the name of a color scheme that corresponds to the
-               present scheme, but in the inverted color mode. If absent,
-               it defaults to @racket[#f]. When a color scheme has an
-               inverted color scheme named, that color scheme must have the
-               opposite boolean in its @racket['white-on-black-base?] field
-               and, under Mac OS, switching to and from dark mode will
-               switch between the two color schemes. Note that both schemes
-               must name the opposite mode color scheme.}
+               symbol or @racket[#f]. This field is no longer used; in the past
+               it linked two color schemes and was used when switching between light
+               and dark modes. Now, two separate preferences are kept; the user's
+               choice for dark mode and their choice for light mode.}
                @item{@racket['example]: must be a string and is used in the preferences dialog
                       to show an example of the color scheme. If absent, the string used in
                       the ``Classic'' color scheme is used.}
@@ -2315,30 +2330,37 @@ the color selection buttons all have the same size.
     @tt{racket -W info@"@"color-scheme -l drracket} will print out the styles used in your
     version of DrRacket.
 
-@history[#:changed "1.68" @list{Added @racket['inverted-base-name].}]
+@history[#:changed "1.68" @list{Added @racket['inverted-base-name].}
+         #:changed "1.79" @list{Ignore @racket['inverted-base-name].}]
 })
  
  (proc-doc/names
   color-prefs:set-current-color-scheme
   (-> symbol? void?)
   (name)
-  @{Sets
-    the current color scheme to the scheme named @racket[name], 
-    if @racket[name] is one of the color schemes.
-    Otherwise, sets the color scheme to the default color scheme.})
+  @{
+Set's the user's preferred @tech{color scheme} to
+the one whose name is @racket[name].
+Also, updates the colors in DrRacket's GUI to the colors in
+that color scheme if the named color scheme matches the
+dark/light mode that the GUI is in.
+})
  
- (proc-doc
+ (proc-doc/names
   color-prefs:get-current-color-scheme-name
-  (-> symbol?)
-  @{Returns the current color scheme's name.})
+  (->* () (#:wob? boolean?) symbol?)
+  (() ((wob? (white-on-black-color-scheme?))))
+  @{Returns the name of either the user's preferred dark mode or light mode @tech{color scheme},
+based on the @racket[wob?] boolean. If the boolean is @racket[#true], returns the dark mode's name,
+otherwise the light mode's.})
  
  (proc-doc/names
   color-prefs:known-color-scheme-name?
   (-> any/c boolean?)
   (name)
   @{Returns @racket[#t] if the input is a @racket[symbol?] that names
- a color or style that is an entry in the current color scheme.
-            
+ a color or style that is an entry in the current @tech{color scheme}.
+
  In order to return @racket[#t], @racket[name] must have been
  passed as the first argument to @racket[color-prefs:add-color-scheme-entry].})
 
@@ -2347,17 +2369,18 @@ the color selection buttons all have the same size.
   (-> symbol? (or/c #f symbol?))
   (name)
   @{
-Returns the inverted-base color scheme name
+Returns the inverted-base @tech{color scheme} name
 of color scheme named @racket[name], if it has one.
 
-@history[#:added "1.68"]
+@history[#:added "1.68"
+         #:changed "1.79" @list{This function is no longer used.}]
 })
  
  (proc-doc/names
   color-prefs:color-scheme-style-name?
   (-> any/c boolean?)
   (name)
-  @{Returns @racket[#t] if @racket[name] is a known color scheme name,
+  @{Returns @racket[#t] if @racket[name] is a known @tech{color scheme} name,
             and is connected to a style. 
             
             In order to return @racket[#t], @racket[name] must have been
@@ -2368,21 +2391,22 @@ of color scheme named @racket[name], if it has one.
   color-prefs:color-scheme-color-name?
   (-> any/c boolean?)
   (name)
-  @{Returns @racket[#t] if @racket[name] is a known color scheme name,
+  @{Returns @racket[#t] if @racket[name] is a known @tech{color scheme} name,
             and is connected to a color. 
             
             In order to return @racket[#t], @racket[name] must have been
             passed as the first argument to @racket[color-prefs:add-color-scheme-entry]
             and the @racket[#:style] argument must have also been omitted or be @racket[#f].})
  
- (proc-doc 
+ (proc-doc
   color-prefs:lookup-in-color-scheme
   (->i ([name color-prefs:known-color-scheme-name?])
-       ()
+       (#:wob? [wob boolean?])
        [result (name)
                (if (color-prefs:color-scheme-style-name? name)
                    (is-a?/c style-delta%)
                    (is-a?/c color%))])
+  ((white-on-black-color-scheme?))
   @{Returns the current style delta or color associated with @racket[name].})
  
  (proc-doc
@@ -2395,7 +2419,7 @@ of color scheme named @racket[name], if it has one.
        ()
        [result void?])
   @{Updates the current color or style delta associated with 
-    @racket[name] in the current color scheme.})
+    @racket[name] in the current @tech{color scheme}.})
  
  (proc-doc
   color-prefs:register-color-scheme-entry-change-callback
@@ -2431,8 +2455,8 @@ of color scheme named @racket[name], if it has one.
  (proc-doc
   color-prefs:get-color-scheme-names
   (-> (values set? set?))
-  @{Returns two sets; the first is the known color scheme names that are just colors
-    and the second is the known color scheme names that are styles.
+  @{Returns two sets; the first is the known @tech{color scheme} names that are just colors
+    and the second is the known @tech{color scheme} names that are styles.
     
     These are all of the names that have been passed to @racket[color-prefs:add-color-scheme-entry].})
  )
