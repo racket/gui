@@ -107,7 +107,7 @@
         [set-brush old-brush]
         [set-pen old-pen]))
 
-    (define/override (get-extent dc x y w h descent space lspace rspace)
+    (define/override (get-extent dc x y [w #f] [h #f] [descent #f] [space #f] [lspace #f] [rspace #f])
       (define-values (size dy) (get-target-size* dc))
       (set-box/f! descent 0)
       (set-box/f! space 0)
