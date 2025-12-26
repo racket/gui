@@ -760,12 +760,12 @@
 
   (define/public (cycle-check km)
     (ormap (lambda (c)
-             (or (eq? km c)
+             (or (object=? km c)
                  (send c cycle-check km)))
            chain-to))
 
   (def/public (chain-to-keymap [keymap% km] [any? prefix?])
-    (unless (or (eq? km this)
+    (unless (or (object=? km this)
                 (cycle-check km)
                 (send km cycle-check this))
       (set! chain-to (if prefix?

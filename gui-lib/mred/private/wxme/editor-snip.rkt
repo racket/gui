@@ -99,7 +99,7 @@
 
   (def/override (set-admin [(make-or-false snip-admin%) a])
 
-    (when (not (eq? a s-admin))
+    (unless (object-or-false=? a s-admin)
       (super set-admin a)
       (when editor
         (if a
@@ -125,7 +125,7 @@
     (void))
   
   (def/public (set-editor [editor<%> b])
-    (unless (eq? editor b)
+    (unless (object-or-false=? editor b)
       (when (and editor s-admin)
         (send editor set-admin #f))
       (set! editor b)
