@@ -412,8 +412,8 @@
         snip)
       
       (inherit get-style)
-      
-      (define/override (get-extent dc x y wb hb descent space lspace rspace)
+
+      (define/override (get-extent dc x y [wb #f] [hb #f] [descent #f] [space #f] [lspace #f] [rspace #f])
         (case fraction-view
           [(decimal)
            (get-decimal-extent dc x y wb hb descent space lspace rspace)]
