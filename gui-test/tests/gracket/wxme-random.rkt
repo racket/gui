@@ -1,6 +1,6 @@
 #lang scheme/gui
 
-(define seed (abs (current-milliseconds)))
+(define seed (modulo (abs (current-milliseconds)) (expt 2 31)))
 (random-seed seed)
 
 (define use-nested? #t)
