@@ -41,6 +41,10 @@ signal failures when there aren't any.
   | This tests that preferences are saved and restored correctly, both
   | immediately and across reboots of gracket.
 
+- path-utils: path-utils.rkt -- runs directly via raco test
+
+  | This tests that paths for autosave and backup files are
+  | generated correctly and respond correctly to preferences.
 
 - individual object tests:
 
