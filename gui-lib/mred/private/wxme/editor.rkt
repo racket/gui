@@ -294,7 +294,7 @@
     #t)
 
   (def/public (do-set-caret-owner [(make-or-false snip%) snip] [symbol? dist])
-    (let ([same? (eq? snip s-caret-snip)])
+    (let ([same? (object-or-false=? snip s-caret-snip)])
       (if (and same?
                (or (not s-admin) (eq? dist 'immediate)))
           #f
@@ -610,7 +610,7 @@
                 [new-list (read-styles-from-file s-style-list f overwritestylename? list-id)])
            (and new-list 
                 (begin
-                  (unless (eq? new-list s-style-list)
+                  (unless (object=? new-list s-style-list)
                     (set-style-list new-list))
                   (let-boxes ([num-headers 0])
                       (send f get-fixed num-headers)
@@ -1232,7 +1232,7 @@
   (define/public (do-own-x-selection on? force?)
     (if on?
         (if (and (not force?)
-                 (not (eq? editor-x-selection-allowed this)))
+                 (not (object-or-false=? editor-x-selection-allowed this)))
             #f
             (begin
               (when editor-x-selection-owner
@@ -1243,7 +1243,7 @@
               (set! editor-x-selection-owner this)
               #t))
         (begin
-          (when (eq? this editor-x-selection-owner)
+          (when (object-or-false=? this editor-x-selection-owner)
             (set! editor-x-selection-owner #f)
             (when (and (not x-selection-copied?)
                        (send the-x-selection-clipboard same-clipboard-client?
@@ -1252,7 +1252,7 @@
           #t)))
 
   (define/public (copy-out-x-selection)
-    (when (eq? this editor-x-selection-owner)
+    (when (object-or-false=? this editor-x-selection-owner)
       (copy-into-selection)
       (set! x-selection-copied? #t)))
 
@@ -1472,7 +1472,7 @@
                 (reverse snip-list)
                 (let loop ([snip start-snip])
                   (if (and snip
-                           (not (eq? snip end-snip)))
+                           (not (object-or-false=? snip end-snip)))
                       (cons snip (loop (snip->next snip)))
                       null)))])
 

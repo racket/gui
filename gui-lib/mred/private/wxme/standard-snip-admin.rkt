@@ -65,28 +65,28 @@
                            [nonnegative-real? w] [nonnegative-real? h]
                            [any? [refresh? #t]]
                            [(symbol-in start end none) [bias 'none]])
-    (and (eq? (send s get-admin) this)
+    (and (object-or-false=? (send s get-admin) this)
          (send editor scroll-to s localx localy w h refresh? bias)))
 
   (def/override (set-caret-owner [snip% s] [(symbol-in imeditorte display global) dist])
-    (when (eq? (send s get-admin) this)
+    (when (object-or-false=? (send s get-admin) this)
       (send editor set-caret-owner s dist)))
 
   (def/override (resized [snip% s] [any? redraw?])
-    (when (eq? (send s get-admin) this)
+    (when (object-or-false=? (send s get-admin) this)
       (send editor resized s redraw?)))
 
   (def/override (recounted [snip% s] [any? redraw?])
-    (when (eq? (send s get-admin) this)
+    (when (object-or-false=? (send s get-admin) this)
       (send editor recounted s redraw?)))
 
   (def/override (needs-update [snip% s] [real? localx] [real? localy]
                               [nonnegative-real? w] [nonnegative-real? h])
-    (when (eq? (send s get-admin) this)
+    (when (object-or-false=? (send s get-admin) this)
       (send editor needs-update s localx localy w h)))
 
   (def/override (release-snip [snip% s])
-    (and (eq? (send s get-admin) this)
+    (and (object-or-false=? (send s get-admin) this)
          (send editor release-snip s)))
 
   (def/override (update-cursor)
@@ -105,7 +105,7 @@
                   (send admin popup-menu m (+ x sl) (+ y st)))))))
 
   (def/override (modified [snip% s] [any? modified?])
-    (when (eq? (send s get-admin) this)
+    (when (object-or-false=? (send s get-admin) this)
       (send editor on-snip-modified s modified?)))
   
   (def/override (get-line-spacing)
