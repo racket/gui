@@ -1242,87 +1242,19 @@ on top's background stays in the wrong mode.
        (new-vertical-panel% 
             [parent parent]
             [style '(auto-vscroll)]))
-     (extras vp)
-     (define buttons
-       (for/list ([color-scheme (in-list known-color-schemes)])
-         (define hp (new-horizontal-panel% 
-                         [parent vp]
-                         [alignment '(left top)]
-                         [stretchable-height #t]
-                         [style '(border)]))
-         (define t (new racket:text%))
-         (define str (color-scheme-example color-scheme))
-         (send t insert str)
-         (define ec (new editor-canvas% 
-                         [parent hp]
-                         [style '(no-border auto-hscroll no-vscroll)]
-                         [editor t]))
-         (define (update-colors defaults?)
-           (define bkg-name 'framework:basic-canvas-background)
-           (send ec set-canvas-background
-                 (lookup-in-color-scheme/given-mapping 
-                  bkg-name
-                  (if defaults?
-                      (hash)
-                      (preferences:get (color-scheme-entry-name->pref-name bkg-name)))
-                  color-scheme))
-           (send t set-style-list (color-scheme->style-list color-scheme defaults?)))
-         (send ec set-line-count (+ 1 (for/sum ([c (in-string str)])
-                                        (if (equal? c #\newline)
-                                            1
-                                            0))))
-         (define bp (new-vertical-panel% [parent hp] 
-                         [stretchable-height #f]
-                         [stretchable-width #f]))
-         (define msg
-           (new message%
-                [stretchable-width #t]
-                [label (color-scheme-button-label color-scheme)]
-                [parent bp]))
-         (define check-box
-           (new check-box%
-                [label (if (color-scheme-white-on-black-base? color-scheme)
-                           (string-constant dark-mode-color-scheme)
-                           (string-constant light-mode-color-scheme))]
-                [parent bp]
-                [value (equal?
-                        (preferences:get (if (color-scheme-white-on-black-base? color-scheme)
-                                             'framework:color-scheme-wob
-                                             'framework:color-scheme))
-                        (color-scheme-name color-scheme))]
-                [callback (λ (x y)
-                            (preferences:set (if (color-scheme-white-on-black-base? color-scheme)
-                                                 'framework:color-scheme-wob
-                                                 'framework:color-scheme)
-                                             (color-scheme-name color-scheme)))]))
-         (preferences:add-callback
-          (if (color-scheme-white-on-black-base? color-scheme)
-              'framework:color-scheme-wob
-              'framework:color-scheme)
-          (λ (sym val)
-            (send check-box set-value
-                  (equal? val (color-scheme-name color-scheme)))))
-         (update-colors #f)
-         msg))
-     (define bottom-hp
-       (new horizontal-panel%
-            [parent vp]
-            [stretchable-height #f]))
-     (define revert-button%
-       (new button%
-            [label (string-constant revert-colors-to-color-scheme-defaults)]
-            [parent bottom-hp]
-            [callback
-             (λ (x y)
-               (revert-to-color-scheme-defaults
-                (get-current-color-scheme
-                 #:wob?
-                 (white-on-black-color-scheme?))))]))
+     (define top-hp (new-horizontal-panel%
+                     [parent vp]
+                     [stretchable-height #f]
+                     [alignment '(center center)]))
+     (define top-hp2 (new-horizontal-panel%
+                      [parent vp]
+                      [stretchable-height #f]
+                      [alignment '(center center)]))
      (define white-on-black-mode-choice
        (case (system-type)
          [(windows)
           (new choice%
-               [parent bottom-hp]
+               [parent top-hp]
                [label (string-constant color-mode)]
                [choices (list (string-constant light-mode)
                               (string-constant dark-mode))]
@@ -1335,7 +1267,7 @@ on top's background stays in the wrong mode.
                                      [1 #t])))])]
          [else
           (new choice%
-               [parent bottom-hp]
+               [parent top-hp]
                [label (string-constant color-mode)]
                [choices (list (string-constant use-os-dark-mode-selection)
                               (string-constant always-light-mode)
@@ -1365,9 +1297,84 @@ on top's background stays in the wrong mode.
                    ['platform 0]
                    [#t 2]
                    [#f 1]))))])
-     (define wid (apply max (map (λ (x) (send x get-width)) buttons)))
-     (for ([b (in-list buttons)])
-       (send b min-width wid))
+
+     (define (setup-color-scheme-choice dark-mode? label pref-sym)
+       (define this-mode-color-schemes
+         (for/list ([color-scheme (in-list known-color-schemes)]
+                    #:when (equal? dark-mode? (color-scheme-white-on-black-base? color-scheme)))
+           color-scheme))
+       (define this-mode-choice
+         (new choice%
+              [parent top-hp2]
+              [label label]
+              [choices (for/list ([color-scheme (in-list this-mode-color-schemes)])
+                         (color-scheme-button-label color-scheme))]
+              [callback
+               (λ (_1 _2)
+                 (preferences:set pref-sym
+                                  (color-scheme-name
+                                   (list-ref this-mode-color-schemes
+                                             (send this-mode-choice get-selection)))))]))
+       (define (update-choice val)
+         (send this-mode-choice set-selection
+               (for/or ([i (in-naturals)]
+                        [color-scheme (in-list this-mode-color-schemes)])
+                 (and (equal? (color-scheme-name color-scheme) val)
+                      i))))
+       (preferences:add-callback pref-sym (λ (sym val) (update-choice val)))
+       (update-choice (preferences:get pref-sym)))
+     (setup-color-scheme-choice #f (string-constant light-mode-scheme) 'framework:color-scheme)
+     (setup-color-scheme-choice #t (string-constant dark-mode-scheme) 'framework:color-scheme-wob)
+
+     (define color-scheme-examples-vp
+       (new-vertical-panel%
+        [spacing 10]
+        [border 10]
+        [parent vp]))
+     (for ([color-scheme (in-list known-color-schemes)])
+       (define hp (new-vertical-panel%
+                   [parent color-scheme-examples-vp]
+                   [alignment '(center top)]
+                   [stretchable-height #t]
+                   [style '(border)]))
+       (define t (new racket:text%))
+       (define str (color-scheme-example color-scheme))
+       (send t insert str)
+       (define msg
+         (new message%
+              [stretchable-width #f]
+              [label (color-scheme-button-label color-scheme)]
+              [parent hp]))
+       (define ec (new editor-canvas%
+                       [parent hp]
+                       [style '(no-border auto-hscroll no-vscroll)]
+                       [editor t]))
+       (define (update-colors defaults?)
+         (define bkg-name 'framework:basic-canvas-background)
+         (send ec set-canvas-background
+               (lookup-in-color-scheme/given-mapping
+                bkg-name
+                (if defaults?
+                    (hash)
+                    (preferences:get (color-scheme-entry-name->pref-name bkg-name)))
+                color-scheme))
+         (send t set-style-list (color-scheme->style-list color-scheme defaults?)))
+       (send ec set-line-count (+ 1 (for/sum ([c (in-string str)])
+                                      (if (equal? c #\newline)
+                                          1
+                                          0))))
+       (update-colors #f))
+     (define revert-button%
+       (new button%
+            [label (string-constant revert-colors-to-color-scheme-defaults)]
+            [parent vp]
+            [callback
+             (λ (x y)
+               (revert-to-color-scheme-defaults
+                (get-current-color-scheme
+                 #:wob?
+                 (white-on-black-color-scheme?))))]))
+     (extras vp)
      (void))))
 
 (define (revert-to-color-scheme-defaults color-scheme)
