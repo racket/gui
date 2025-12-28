@@ -43,15 +43,6 @@
 
 (preferences:set-default 'framework:ascii-art-enlarge #f boolean?)
 
-;; the name of the color scheme that the user prefers when in black-on-white mode
-(preferences:set-default 'framework:color-scheme
-                         'classic
-                         symbol?)
-;; the name of the color scheme that the user prefers when in white-on-black mode
-(preferences:set-default 'framework:color-scheme-wob
-                         'white-on-black
-                         symbol?)
-
 (preferences:set-default 'framework:column-guide-width
                          '(#f 102)
                          (list/c boolean? (and/c exact-integer? (>=/c 2))))
@@ -229,14 +220,75 @@
 
 (set-square-bracket-nonum-pref 'framework:square-bracket:for/fold for/folds)
 
+;; this preference shouldn't be used any more; we keep it here
+;; only so we can access it's old value
+(preferences:set-default 'framework:color-scheme 'classic symbol?)
+
+(define dark-mode-with-previous-preferences-organization?
+  ;; all of the color schemes on the package server with
+  ;; 'white-on-black-base? set to #t
+  (and (member (preferences:get 'framework:color-scheme)
+               '(white-on-black
+                 |Tol's White on Black|
+                 |Catppuccin Frappe|
+                 |Catppuccin Macchiato|
+                 |Catppuccin Mocha|
+                 |Dracula|
+                 |Cyberpunk|
+                 |Everforest Dark Hard|
+                 |Everforest Dark Medium|
+                 |Everforest Dark Low|
+                 |Material|
+                 |One Dark|
+                 |Dark Green - blue style|
+                 |Dark Green - orange style|
+                 |Solarized Dark|
+                 |Sonokai|
+                 |fairyfloss|
+                 |Funktionuckelt Dark|
+
+                 ;; these two have a #f set in the info.rkt file, but
+                 ;; seems to actually intended to be dark color schemes
+                 |ayu mirage|
+                 |Zenburn|
+                 ))
+       #t))
+
+;; the name of the color scheme that the user prefers when in black-on-white mode
+;; the default is based on the previous preferences organization, preserving the
+;; chosen preference if we can.
+(preferences:set-default 'framework:color-scheme-light
+                         (if dark-mode-with-previous-preferences-organization?
+                             'classic
+                             (preferences:get 'framework:color-scheme))
+                         symbol?)
+;; the name of the color scheme that the user prefers when in white-on-black mode
+(preferences:set-default 'framework:color-scheme-dark
+                         (if dark-mode-with-previous-preferences-organization?
+                             (preferences:get 'framework:color-scheme)
+                             'white-on-black)
+                         symbol?)
+
+
 ;; either:
-;;        #t (meaning we always treat it as white-on-black mode)
-;;        #f (meaning we always treat it as black-on-white mode), or
+;;        #t (meaning we always treat it as white-on-black aka dark mode)
+;;        #f (meaning we always treat it as black-on-white aka light mode), or
 ;; 'platform (meaning we use `white-on-black-panel-scheme?` to determine what to do)
 (preferences:set-default 'framework:white-on-black-mode?
+                         ;; in the past, the 'framework:color-scheme preference
+                         ;; determined a single color scheme; use that scheme's
+                         ;; dark/light mode category to determine the default
+                         ;; preference for this preference, preferring 'platform
+                         ;; if 'platform seems to make sense
                          (case (system-type)
-                           [(windows) #f]
-                           [else 'platform])
+                           [(windows)
+                            dark-mode-with-previous-preferences-organization?]
+                           [else
+                            (cond
+                              [(equal? dark-mode-with-previous-preferences-organization?
+                                       (white-on-black-panel-scheme?))
+                               'platform]
+                              [else dark-mode-with-previous-preferences-organization?])])
                          (or/c boolean? 'platform))
 
 ;; this is an old setting that has been replaced with 'framework:white-on-black-mode?
@@ -606,8 +658,8 @@
                  'platform)
      (define pref
        (if (white-on-black-panel-scheme?)
-           'framework:color-scheme-wob
-           'framework:color-scheme))
+           'framework:color-scheme-dark
+           'framework:color-scheme-light))
      (define scheme-name (preferences:get pref))
      (color-prefs:change-colors-to-match-color-scheme
       (or (color-prefs:lookup-color-scheme scheme-name)
@@ -616,7 +668,7 @@
               (color-prefs:built-in-color-scheme)))))))
 
 (preferences:add-callback
- 'framework:color-scheme
+ 'framework:color-scheme-light
  (λ (sym val)
    (unless (color-prefs:white-on-black-color-scheme?)
      (color-prefs:change-colors-to-match-color-scheme
@@ -624,7 +676,7 @@
           (color-prefs:built-in-color-scheme))))))
 
 (preferences:add-callback
- 'framework:color-scheme-wob
+ 'framework:color-scheme-dark
  (λ (sym val)
    (when (color-prefs:white-on-black-color-scheme?)
      (color-prefs:change-colors-to-match-color-scheme
@@ -639,7 +691,7 @@
        ['platform (white-on-black-panel-scheme?)]
        [#t #t]
        [#f #f]))
-   (define pref-name (if wob? 'framework:color-scheme-wob 'framework:color-scheme))
+   (define pref-name (if wob? 'framework:color-scheme-dark 'framework:color-scheme-light))
    (define pref-val (preferences:get pref-name))
    (define found-color-scheme (color-prefs:lookup-color-scheme pref-val))
    (color-prefs:change-colors-to-match-color-scheme

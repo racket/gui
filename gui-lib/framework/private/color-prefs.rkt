@@ -758,8 +758,8 @@ on top's background stays in the wrong mode.
    (sort (set->list known-color-names) symbol<?)
    (sort (set->list known-style-names) symbol<?))
   (define preferred-color-scheme (if (white-on-black-color-scheme?)
-                                     (preferences:get 'framework:color-scheme-wob)
-                                     (preferences:get 'framework:color-scheme)))
+                                     (preferences:get 'framework:color-scheme-dark)
+                                     (preferences:get 'framework:color-scheme-light)))
   (for ([dir (in-list (find-relevant-directories '(framework:color-schemes)))])
     (define info (with-handlers ([exn:fail?
                                   (λ (x)
@@ -1033,7 +1033,7 @@ on top's background stays in the wrong mode.
   ;; if some color scheme goes away, we have some
   ;; reasonable backup plan (and, if it comes back
   ;; we don't lose the prefs)
-  (define pref-name (if wob? 'framework:color-scheme-wob 'framework:color-scheme))
+  (define pref-name (if wob? 'framework:color-scheme-dark 'framework:color-scheme-light))
   (define pref-val (preferences:get pref-name))
   (define found-color-scheme (lookup-color-scheme pref-val))
   (cond
@@ -1060,8 +1060,8 @@ on top's background stays in the wrong mode.
                known-color-scheme))
         (car known-color-schemes)))
   (preferences:set (if (color-scheme-white-on-black-base? color-scheme)
-                       'framework:color-scheme-wob
-                       'framework:color-scheme)
+                       'framework:color-scheme-dark
+                       'framework:color-scheme-light)
                    (color-scheme-name color-scheme))
   (when (equal? (color-scheme-white-on-black-base? color-scheme)
                 (white-on-black-color-scheme?))
@@ -1323,8 +1323,8 @@ on top's background stays in the wrong mode.
                       i))))
        (preferences:add-callback pref-sym (λ (sym val) (update-choice val)))
        (update-choice (preferences:get pref-sym)))
-     (setup-color-scheme-choice #f (string-constant light-mode-scheme) 'framework:color-scheme)
-     (setup-color-scheme-choice #t (string-constant dark-mode-scheme) 'framework:color-scheme-wob)
+     (setup-color-scheme-choice #f (string-constant light-color-scheme) 'framework:color-scheme-light)
+     (setup-color-scheme-choice #t (string-constant dark-color-scheme) 'framework:color-scheme-dark)
 
      (define color-scheme-examples-vp
        (new-vertical-panel%
