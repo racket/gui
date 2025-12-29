@@ -665,7 +665,10 @@
       (or (color-prefs:lookup-color-scheme scheme-name)
           (if (white-on-black-panel-scheme?)
               (color-prefs:built-in-wob-color-scheme)
-              (color-prefs:built-in-color-scheme)))))))
+              (color-prefs:built-in-color-scheme)))))
+
+   (color-prefs:update-dark-light-preferences-panel-ordering
+    (color-prefs:white-on-black-color-scheme?))))
 
 (preferences:add-callback
  'framework:color-scheme-light

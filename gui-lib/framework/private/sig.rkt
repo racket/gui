@@ -392,7 +392,8 @@
     (change-colors-to-match-color-scheme
      lookup-color-scheme
      built-in-wob-color-scheme
-     built-in-color-scheme))
+     built-in-color-scheme
+     update-dark-light-preferences-panel-ordering))
   
   (define-signature racket-class^
     (text<%>
