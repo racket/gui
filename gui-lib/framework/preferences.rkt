@@ -365,6 +365,23 @@ the state transitions / contracts are:
         copy
         value)))
 
+;; same-pref-value? : sym any any -> boolean
+;; compares two preference values; if they are
+;; eq? then they are the same. Otherwise, they
+;; are the same if they marshall to equal? values
+(define (same-pref-value? p val1 val2)
+  (cond
+    [(eq? val1 val2) #t]
+    [else
+     (define pref-state (find-layer p))
+     (define marshall-unmarshall (preferences:layer-marshall-unmarshall pref-state))
+     (define un/marshaller (hash-ref marshall-unmarshall p #f))
+     (cond
+       [un/marshaller
+        (define marsh (un/marshall-marshall un/marshaller))
+        (equal? (marsh val1) (marsh val2))]
+       [else #f])]))
+
 (define (preferences:restore-defaults)
   (let loop ([prefs-state (preferences:current-layer)])
     (when prefs-state
@@ -387,8 +404,14 @@ the state transitions / contracts are:
        [else sofar]))))
 
 (define (preferences:restore-prefs-snapshot snapshot)
-  (multi-set (map car (preferences:snapshot-x snapshot))
-             (map cdr (preferences:snapshot-x snapshot)))
+  (define items
+    (for/list ([key+val (in-list (preferences:snapshot-x snapshot))]
+               #:unless
+               (same-pref-value? (car key+val)
+                                 (cdr key+val)
+                                 (preferences:get (car key+val))))
+      key+val))
+  (multi-set (map car items) (map cdr items))
   (void))
 
 (begin-for-doc
