@@ -57,10 +57,6 @@ signal failures when there aren't any.
 
   | This tests the misc (non-scheme) keybindings
 
-- searching: |# search.rkt #|
-
-  | This tests the search results
-
 - group tests: group-test.rkt  -- now runs directly via raco test
 
   | make sure that mred:the-frame-group records frames correctly.
