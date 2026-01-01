@@ -3726,7 +3726,7 @@
                            [any? [bos? #t]]
                            [any? [case-sens? #t]])
     (if (check-recalc #f #f)
-        (do-find-string-all str direction start end #t bos? case-sens? #f)
+        (do-find-string-all str direction start end #t bos? case-sens? (λ (x) #f))
         #f))
 
   (def/public (find-string-all [string? str]
@@ -3736,7 +3736,7 @@
                                [any? [bos? #t]]
                                [any? [case-sens? #t]])
     (if (check-recalc #f #f)
-        (do-find-string-all str direction start end #f bos? case-sens? #f)
+        (do-find-string-all str direction start end #f bos? case-sens? (λ (x) #f))
         null))
   
   (def/public (find-string-embedded [string? str]
@@ -3744,9 +3744,10 @@
                                     [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
                                     [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
                                     [any? [bos? #t]]
-                                    [any? [case-sens? #t]])
+                                    [any? [case-sens? #t]]
+                                    #:recur-inside? [(make-procedure 1) [recur-inside? (λ (x) #t)]])
     (if (check-recalc #f #f)
-        (do-find-string-all str direction start end #t bos? case-sens? #t)
+        (do-find-string-all str direction start end #t bos? case-sens? recur-inside?)
         #f))
 
   (def/public (find-string-embedded-all [string? str]
@@ -3754,9 +3755,10 @@
                                         [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
                                         [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
                                         [any? [bos? #t]]
-                                        [any? [case-sens? #t]])
+                                        [any? [case-sens? #t]]
+                                        #:recur-inside? [(make-procedure 1) [recur-inside? (λ (x) #t)]])
     (if (check-recalc #f #f)
-        (do-find-string-all str direction start end #f bos? case-sens? #t)
+        (do-find-string-all str direction start end #f bos? case-sens? recur-inside?)
         null))
 
   (def/public (find-newline [(symbol-in forward backward) [direction 'forward]]
@@ -3885,8 +3887,8 @@
            (for ([c (in-range latest-snip-len)])
              (string-set! latest-snip-str c (char-downcase (string-ref latest-snip-str c)))))
          (cond
-           [(and recur-inside?
-                 (is-a? latest-snip editor-snip%))
+           [(and (is-a? latest-snip editor-snip%)
+                 (recur-inside? latest-snip))
             (let loop ([snip latest-snip])
               (define ed (send snip get-editor))
               (cond
@@ -3902,7 +3904,8 @@
                  (define inner-result
                    (let inner-loop ([inner-snip (send ed find-first-snip)])
                          (cond
-                           [(is-a? inner-snip editor-snip%)
+                           [(and (is-a? inner-snip editor-snip%)
+                                 (recur-inside? inner-snip))
                             (define this-one (loop inner-snip))
                             (if just-one?
                                 (or this-one

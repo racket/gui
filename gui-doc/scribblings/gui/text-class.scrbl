@@ -677,7 +677,8 @@ If @racket[case-sensitive?] is @racket[#f], then an uppercase and lowercase
                                  [start (or/c exact-nonnegative-integer? 'start) 'start]
                                  [end (or/c exact-nonnegative-integer? 'eof) 'eof]
                                  [get-start? any/c #t]
-                                 [case-sensitive? any/c #t])
+                                 [case-sensitive? any/c #t]
+                                 [#:recur-inside? recur-inside? (-> (is-a?/c editor-snip%) any/c) (λ (x) #t)])
            (or/c exact-nonnegative-integer? 
                  #f
                  (cons/c
@@ -692,6 +693,13 @@ If @racket[case-sensitive?] is @racket[#f], then an uppercase and lowercase
        are the editors on the path to the editor where the search
        string occurred and whose final @racket[cdr] position is the 
        search result position.
+
+  Each time an embedded editor is encountered, @racket[recur-inside?] is called
+  with the @racket[editor-snip%] object; if @racket[recur-inside?] returns
+  @racket[#false], results from that embedded editor (and editors embedded into it)
+  are skipped.
+
+  @history[#:changed "1.80" @list{Added the @racket[recur-inside?] argument}]
 }
                                                 
 @defmethod[(find-string-all [str non-empty-string?]
@@ -713,7 +721,8 @@ Finds all occurrences of a string using @method[text% find-string]. If
                                      [start (or/c exact-nonnegative-integer? 'start) 'start]
                                      [end (or/c exact-nonnegative-integer? 'eof) 'eof]
                                      [get-start? any/c #t]
-                                     [case-sensitive any/c #t])
+                                     [case-sensitive any/c #t]
+                                     [#:recur-inside? recur-inside? (-> (is-a?/c editor-snip%) any/c) (λ (x) #t)])
            (listof (or/c exact-nonnegative-integer? 
                          (cons/c
                           (is-a?/c editor<%>)
@@ -722,9 +731,11 @@ Finds all occurrences of a string using @method[text% find-string]. If
                            (or/c (cons/c (is-a?/c editor<%>)
                                          nested-editor-search-result)
                                  (listof exact-nonnegative-integer?))))))]{
-Like @method[text% find-string-embedded], but also searches in embedded
-editors, returning search  results a list of the editors that contain
-the matches.
+Like @method[text% find-string-all], but also searches in embedded
+editors like @method[text% find-string-embedded], returning the search results
+as a list of the editors that contain the matches.
+
+@history[#:changed "1.80" @list{Added the @racket[recur-inside?] argument}]
 }
 
 @defmethod[(find-wordbreak [start (or/c (box/c exact-nonnegative-integer?) #f)]
