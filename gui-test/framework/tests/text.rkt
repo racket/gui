@@ -335,6 +335,62 @@
   (check-equal?
    (run-search-test
     (λ (t)
+      (send t insert " a b a b a")
+      (send t set-position 0 0)
+      (send t set-searching-state "a" #f #f)))
+   (list 0 3))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
+      (send t insert " a b a b a")
+      (send t set-position 1 1)
+      (send t set-searching-state "a" #f #f)))
+   (list 1 3))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
+      (send t insert " a b a b a")
+      (send t set-position 2 2)
+      (send t set-searching-state "a" #f #f)))
+   (list 1 3))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
+      (send t insert " a b a b a")
+      (send t set-position 3 3)
+      (send t set-searching-state "a" #f #f)))
+   (list 1 3))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
+      (send t insert " a b a b a")
+      (send t set-position 4 4)
+      (send t set-searching-state "a" #f #f)))
+   (list 1 3))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
+      (send t insert " a b a b a")
+      (send t set-position 5 5)
+      (send t set-searching-state "a" #f #f)))
+   (list 2 3))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
+      (send t insert " a b a b a")
+      (send t set-position 2 2)
+      (send t set-searching-state "a" #f #f)))
+   (list 1 3))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
       (send t insert "abc")
       (define t2 (new text%))
       (send t2 insert "abc")

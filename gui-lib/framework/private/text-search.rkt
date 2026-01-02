@@ -266,18 +266,20 @@
           (queue-callback
            (λ ()
              (when searching-str
-               (define start-pos (get-focus-editor-start-position))
-               (define (how-many-to-add k)
-                 (if (search-result-compare <= (car k) start-pos) 1 0))
-               (define count
-                 (+ (if to-replace-highlight
-                        (how-many-to-add to-replace-highlight)
-                        0)
-                    (for/sum ([(k v) (in-hash search-bubble-table)])
-                      (how-many-to-add k))))
-               (update-before-caret-search-hit-count count))
+               (update-before-caret-search-hit-count
+                (calculate-before-caret-search-hit-count)))
              (set! search-position-callback-running? #f))
            #f)))
+
+      (define/private (calculate-before-caret-search-hit-count)
+        (define start-pos (get-focus-editor-start-position))
+        (define (how-many-to-add k)
+          (if (search-result-compare <= (car k) start-pos) 1 0))
+        (+ (if to-replace-highlight
+               (how-many-to-add to-replace-highlight)
+               0)
+           (for/sum ([(k v) (in-hash search-bubble-table)])
+             (how-many-to-add k))))
 
       (define/private (get-focus-editor-start-position)
         (let loop ([txt this])
@@ -402,15 +404,14 @@
             (define new-search-bubbles '())
             (define new-replace-bubble #f)
             (define first-hit (do-search 0))
-         
-            (define-values (this-search-hit-count this-before-caret-search-hit-count)
+
+            ;; TODO (maybe-queue-search-position-update)
+            (define this-search-hit-count
               (cond
                 [first-hit
                  (define sp (get-focus-editor-start-position))
                  (let loop ([bubble-start first-hit]
-                            [search-hit-count 0]
-                            [before-caret-search-hit-count
-                             (if (search-result-compare < first-hit sp) 1 0)])
+                            [search-hit-count 0])
                    (maybe-pause)
                    (define bubble-end (search-result+ bubble-start (string-length searching-str)))
                    (define bubble (cons bubble-start (string-length searching-str)))
@@ -427,23 +428,15 @@
 
                    (define next (do-search bubble-end))
                 
-                   (define next-before-caret-search-hit-count
-                     (if (and next (search-result-compare < next sp))
-                         (+ 1 before-caret-search-hit-count)
-                         before-caret-search-hit-count))
                    (cond
                      [next
                       ;; start a new one if there is another hit
-                      (loop next 
-                            (+ search-hit-count 1)
-                            next-before-caret-search-hit-count)]
+                      (loop next (+ search-hit-count 1))]
                      [else
-                      (values (+ search-hit-count 1) 
-                              before-caret-search-hit-count)]))]
-                [else (values 0 0)]))
+                      (+ search-hit-count 1)]))]
+                [else 0]))
          
             (set! search-hit-count this-search-hit-count)
-            (set! before-caret-search-hit-count this-before-caret-search-hit-count)
          
             (maybe-pause)
          
@@ -460,7 +453,8 @@
                  (highlight-hit search-bubble)])
               (maybe-pause))
          
-            (update-yellow) 
+            (update-yellow)
+            (set! before-caret-search-hit-count (calculate-before-caret-search-hit-count))
             (end-edit-sequence)]
            [else
             (begin-edit-sequence #t #f)
