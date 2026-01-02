@@ -342,6 +342,20 @@
       (send t2 insert "abc")
       (send t set-position 0 0)
       (send t set-searching-state "b" #f #f)))
+   ;; we don't see some of the hits here because
+   ;; the embedded texts aren't searching-embedded<%>
+   (list 0 1))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
+      (send t insert "abc")
+      (define t2 (new (text:searching-embedded-mixin text%)))
+      (send t2 insert "abc")
+      (send t insert (new editor-snip% [editor t2]))
+      (send t2 insert "abc")
+      (send t set-position 0 0)
+      (send t set-searching-state "b" #f #f)))
    (list 0 3))
 
   (check-equal?
@@ -349,6 +363,20 @@
     (λ (t)
       (send t insert "abc")
       (define t2 (new text%))
+      (send t2 insert "abc")
+      (send t insert (new editor-snip% [editor t2]))
+      (send t insert "abc")
+      (send t set-position (send t last-position) (send t last-position))
+      (send t set-searching-state "b" #f #f)))
+   ;; we don't see some of the hits here because
+   ;; the embedded texts aren't searching-embedded<%>
+   (list 2 2))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
+      (send t insert "abc")
+      (define t2 (new (text:searching-embedded-mixin text%)))
       (send t2 insert "abc")
       (send t insert (new editor-snip% [editor t2]))
       (send t insert "abc")
@@ -370,6 +398,24 @@
       (send t insert "abc")
       (send t set-position (send t last-position) (send t last-position))
       (send t set-searching-state "b" #f #f)))
+   ;; we don't see some of the hits here because
+   ;; the embedded texts aren't searching-embedded<%>
+   (list 2 2))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
+      (send t insert "abc")
+      (define t2 (new (text:searching-embedded-mixin text%)))
+      (send t2 insert "abc")
+      (define t3 (new (text:searching-embedded-mixin text%)))
+      (send t3 insert "abc")
+      (send t2 insert (new editor-snip% [editor t3]))
+      (send t2 insert "abc")
+      (send t insert (new editor-snip% [editor t2]))
+      (send t insert "abc")
+      (send t set-position (send t last-position) (send t last-position))
+      (send t set-searching-state "b" #f #f)))
    (list 5 5))
 
   (check-equal?
@@ -379,6 +425,24 @@
       (define t2 (new text%))
       (send t2 insert "abc")
       (define t3 (new text%))
+      (send t3 insert "abc")
+      (send t2 insert (new editor-snip% [editor t3]))
+      (send t2 insert "abc")
+      (send t insert (new editor-snip% [editor t2]))
+      (send t insert "abc")
+      (send t set-position 0 0)
+      (send t set-searching-state "b" #f #f)))
+   ;; we don't see some of the hits here because
+   ;; the embedded texts aren't searching-embedded<%>
+   (list 0 2))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
+      (send t insert "abc")
+      (define t2 (new (text:searching-embedded-mixin text%)))
+      (send t2 insert "abc")
+      (define t3 (new (text:searching-embedded-mixin text%)))
       (send t3 insert "abc")
       (send t2 insert (new editor-snip% [editor t3]))
       (send t2 insert "abc")

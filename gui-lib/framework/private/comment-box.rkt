@@ -15,14 +15,15 @@
 (define-unit comment-box@
   
   (import [prefix racket: framework:racket^]
-          [prefix keymap: framework:keymap^])
+          [prefix keymap: framework:keymap^]
+          [prefix text: framework:text^])
   (export (rename framework:comment-box^
                   (-snip% snip%)))
   
   (define snipclass%
     (class decorated-editor-snipclass%
       (define/override (make-snip stream-in) (instantiate -snip% ()))
-      (super-instantiate ())))
+      (super-new)))
   
   (define snipclass (make-object snipclass%))
   (send snipclass set-version 1)
@@ -35,7 +36,7 @@
   (define (get-scheme+copy-self%)
     (unless scheme+copy-self%
       (set! scheme+copy-self%
-            (class racket:text%
+            (class (text:searching-embedded-mixin racket:text%)
               (inherit copy-self-to)
               (define/override (copy-self)
                 (let ([ed (new scheme+copy-self%)])
@@ -119,6 +120,6 @@
       
       (define/public (read-special source line column position)
         (make-special-comment "comment"))
-      (super-instantiate ())
+      (super-new)
       (inherit set-snipclass)
       (set-snipclass snipclass))))

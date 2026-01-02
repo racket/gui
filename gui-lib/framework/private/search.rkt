@@ -7,7 +7,8 @@
  (contract-out
   [find-string-embedded
    (->* ((is-a?/c text%)
-         string?)
+         string?
+         #:recur-inside? (-> (is-a?/c editor-snip%) any/c))
         ((or/c 'forward 'backward)
          (or/c 'start number?)
          (or/c 'eof number?)
@@ -24,12 +25,14 @@
                               [end 'eof]
                               [get-start #t]
                               [case-sensitive? #t]
-                              [pop-out? #f])
+                              [pop-out? #f]
+                              #:recur-inside? recur-inside?)
   (let/ec k
     (let loop ([a-text a-text]
                [start start]
                [end end])
-      (define found (send a-text find-string-embedded str direction start end get-start case-sensitive?))
+      (define found (send a-text find-string-embedded str direction start end get-start case-sensitive?
+                          #:recur-inside? recur-inside?))
       (define (done)
         (cond
           [(not found)
@@ -72,45 +75,45 @@
   (send abc//abc/abcX/abcQ//abcZ insert "abcZ")
   
   (let ()
-    (define-values (ta pos) (find-string-embedded abcX "b" 'forward 0))
+    (define-values (ta pos) (find-string-embedded abcX "b" 'forward 0 #:recur-inside? (λ (x) #t)))
     (check-equal? ta abcX)
     (check-equal? pos 1))
 
   (let ()
-    (define-values (ta pos) (find-string-embedded abcX "c" 'forward 0))
+    (define-values (ta pos) (find-string-embedded abcX "c" 'forward 0 #:recur-inside? (λ (x) #t)))
     (check-equal? ta abcX)
     (check-equal? pos 2))
 
   (let ()
-    (define-values (ta pos) (find-string-embedded abcX "d" 'forward 2))
+    (define-values (ta pos) (find-string-embedded abcX "d" 'forward 2 #:recur-inside? (λ (x) #t)))
     (check-equal? pos #f))
 
   (let ()
-    (define-values (ta pos) (find-string-embedded abc/abcX/abcQ "b" 'forward 0))
+    (define-values (ta pos) (find-string-embedded abc/abcX/abcQ "b" 'forward 0 #:recur-inside? (λ (x) #t)))
     (check-equal? ta ta)
     (check-equal? pos 1))
 
   (let ()
-    (define-values (ta pos) (find-string-embedded abc/abcX/abcQ "b" 'forward 2))
+    (define-values (ta pos) (find-string-embedded abc/abcX/abcQ "b" 'forward 2 #:recur-inside? (λ (x) #t)))
     (check-equal? ta abcX)
     (check-equal? pos 1))
 
   (let ()
-    (define-values (ta pos) (find-string-embedded abc//abc/abcX/abcQ//abcZ "X" 'forward 0))
+    (define-values (ta pos) (find-string-embedded abc//abc/abcX/abcQ//abcZ "X" 'forward 0  #:recur-inside? (λ (x) #t)))
     (check-equal? ta abcX)
     (check-equal? pos 3))
 
   (let ()
-    (define-values (ta pos) (find-string-embedded abcX "Q" 'forward 0 'eof #t #t #t))
+    (define-values (ta pos) (find-string-embedded abcX "Q" 'forward 0 'eof #t #t #t #:recur-inside? (λ (x) #t)))
     (check-equal? ta abc/abcX/abcQ)
     (check-equal? pos 7))
 
   (let ()
-    (define-values (ta pos) (find-string-embedded abcX "Z" 'forward 0 'eof #t #t #t))
+    (define-values (ta pos) (find-string-embedded abcX "Z" 'forward 0 'eof #t #t #t #:recur-inside? (λ (x) #t)))
     (check-equal? ta abc//abc/abcX/abcQ//abcZ)
     (check-equal? pos 7))
 
   (let ()
-    (define-values (ta pos) (find-string-embedded abcX "c" 'forward 4 'eof #t #t #t))
+    (define-values (ta pos) (find-string-embedded abcX "c" 'forward 4 'eof #t #t #t #:recur-inside? (λ (x) #t)))
     (check-equal? ta abc/abcX/abcQ)
     (check-equal? pos 6)))

@@ -698,7 +698,7 @@
     @racket['framework:anchored-search] preference is on.
   }
 
-  @defmethod[(get-search-hit-count) (values number? number?)]{
+  @defmethod[(get-search-hit-count) (values natural? natural?)]{
     Returns the number of hits for the search in the buffer before the
     insertion point and the total number of hits. Both are based on the count
     found last time that a search completed.
@@ -711,7 +711,7 @@
 
   }
 
-  @defmethod[(get-replace-search-hit) (or/c number? #f)]{
+  @defmethod[(get-replace-search-hit) (or/c (list*of (is-a?/c text%) natural?) #f)]{
     Returns the position of the nearest search hit that comes after the
     insertion point.
 
@@ -722,7 +722,7 @@
   @method[text:searching<%> finish-pending-search-work].
 }
 
-  @defmethod[(set-replace-start [pos (or/c number? #f)]) void?]{
+  @defmethod[(set-replace-start [pos (or/c natural? #f)]) void?]{
     This method is ignored. (The next replacement start is now
     tracked via the @method[text% after-set-position] method.)
   }
@@ -758,7 +758,7 @@
 }
 
 @defmixin[text:searching-mixin (editor:keymap<%> text:basic<%>) (text:searching<%>)]{
-  This @racket[text%] can be searched.
+  This @racket[text%] can be searched. See also @racket[text:searching-embedded-mixin]
 
   The result of this mixin uses the same initialization arguments as the
   mixin's argument.
@@ -784,6 +784,44 @@
   }
 }
 
+@definterface[text:searching-embedded<%> ()]{
+ Classes that implement this interface are produced by
+ @racket[text:searching-exmbedded-mixin] and have overridden
+ observer methods that forward information about changes to the editor
+ that can affect the searching results state.
+
+@history[#:added "1.80"]
+
+}
+
+@defmixin[text:searching-embedded-mixin (text%) (text:searching-embedded<%>)]{
+ This mixin is expected to be used with editors that appear inside @racket[editor-snip%]s
+ and that can have search results. I cooperates with the enclosing @racket[text:searching<%>]
+ object to inform it when a change to the editor has occurred that can affect
+ the current search results and how they are displayed.
+
+@history[#:added "1.80"]
+
+  @defmethod[#:mode augment (after-insert [start exact-nonnegative-integer?]
+                                          [len exact-nonnegative-integer?]) void?]{
+    Tells the outermost enclosing editor that the contents
+    of the editor has changed, which can affect the way
+    search results are displayed.
+  }
+
+  @defmethod[#:mode augment (after-delete [start exact-nonnegative-integer?]
+                                          [len exact-nonnegative-integer?]) void?]{
+    Tells the outermost enclosing editor that the contents
+    of the editor has changed, which can affect the way
+    search results are displayed.
+  }
+
+  @defmethod[#:mode augment (after-set-position) void?]{
+    Tells the outermost enclosing editor that the position
+    of the editor has changed, which can affect the way
+    search results are displayed.
+  }
+}
 @definterface[text:return<%> (text%)]{
   Objects supporting this interface were created by @racket[text:return-mixin].
 }

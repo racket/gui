@@ -92,7 +92,9 @@
 
 (define-signature text-search^
   (searching<%>
-   searching-mixin))
+   searching-mixin
+   searching-embedded<%>
+   searching-embedded-mixin))
 
 (define-signature text-inline-overview^
   (inline-overview<%>

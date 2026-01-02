@@ -4,6 +4,7 @@
          racket/class
          racket/contract/base
          racket/path
+         racket/dict
          "search.rkt"
          "sig.rkt"
          "../preferences.rkt"
@@ -2071,13 +2072,13 @@
      (λ (x) (insert x (last-position) (last-position)))
      (preferences:get pref-sym))
     (end-edit-sequence)
-    
-    (define pref-callback 
+
+    (define pref-callback
       (λ (p v)
         (let ([c (get-canvas)])
           (when (and c (send c get-line-count))
             (send c set-editor (send c get-editor))))))
-    
+
     (preferences:add-callback 'framework:standard-style-list:font-size pref-callback #t)))
 
 (define find-text%
@@ -2085,13 +2086,13 @@
     (inherit get-canvas get-text last-position insert find-first-snip
              get-admin invalidate-bitmap-cache run-after-edit-sequence
              begin-edit-sequence end-edit-sequence get-top-level-window)
-    
+
     (define/private (get-case-sensitive-search?)
       (let ([frame (get-top-level-window)])
         (and frame
              (send frame get-case-sensitive-search?))))
 
-    (define/override (on-focus on?)  
+    (define/override (on-focus on?)
       (let ([frame (get-top-level-window)])
         (when frame
           (let ([text-to-search (send frame get-text-to-search)])
@@ -2099,7 +2100,7 @@
               (when on?
                 (send text-to-search set-search-anchor (send text-to-search get-start-position)))))))
       (super on-focus on?))
-    
+
     (define/augment (after-insert x y)
       (update-searching-str/trigger-jump)
       (inner (void) after-insert x y))
@@ -2110,7 +2111,7 @@
       (let ([tlw (get-top-level-window)])
         (when tlw
           (send tlw search-string-changed)))
-      
+
       ;; trigger-jump
       (when (preferences:get 'framework:anchored-search)
         (let ([frame (get-top-level-window)])
@@ -2125,118 +2126,122 @@
                       [else
                        (search 'forward #t #t #f anchor-pos)])))))))))
 
-    
     (define/private (get-searching-text)
       (let ([frame (get-top-level-window)])
         (and frame
              (send frame get-text-to-search))))
-    (define/public (search [searching-direction 'forward] 
+
+    (define/public (search [searching-direction 'forward]
                            [beep? #t]
                            [wrap? #t]
                            [move-anchor? #t]
                            [search-start-position #f])
-      (let* ([string (get-text)]
-             [top-searching-edit (get-searching-text)])
-        (when top-searching-edit
-          (let ([searching-edit
-                 (let loop ([txt top-searching-edit])
-                   (define focus-snip (send txt get-focus-snip))
-                   (cond
-                     [(and focus-snip (is-a? focus-snip editor-snip%))
-                      (loop (send focus-snip get-editor))]
-                     [else txt]))]
-                
-                [not-found
-                 (λ (found-edit skip-beep?)
-                   (when (and beep?
-                              (not skip-beep?))
-                     (bell))
-                   #f)]
-                [found
-                 (λ (text first-pos)
-                   (define (thunk)
-                     (define last-pos ((if (eq? searching-direction 'forward) + -)
-                                       first-pos (string-length string)))
-                     (define start-pos (min first-pos last-pos))
-                     (define end-pos (max first-pos last-pos))
-                     
-                     (send text begin-edit-sequence #t #f)
-                     (send text set-caret-owner #f 'display)
-                     (send text set-position start-pos end-pos #f #f 'local)
-                     
-                     
-                     ;; scroll to the middle if the search result isn't already visible
-                     (let ([search-result-line (send text position-line (send text get-start-position))]
-                           [bt (box 0)]
-                           [bb (box 0)])
-                       (send text get-visible-line-range bt bb #f)
-                       (unless (< (unbox bt) search-result-line (unbox bb))
-                         (let* ([half (sub1 (quotient (- (unbox bb) (unbox bt)) 2))]
-                                [last-pos (send text position-line (send text last-position))]
-                                [top-pos (send text line-start-position 
-                                               (max (min (- search-result-line half) last-pos) 0))]
-                                [bottom-pos (send text line-start-position 
-                                                  (max 0
-                                                       (min (+ search-result-line half)
-                                                            last-pos)))])
-                           (send text scroll-to-position 
-                                 top-pos
-                                 #f
-                                 bottom-pos))))
-                     
-                     (when move-anchor?
-                       (when (is-a? text text:searching<%>)
-                         (send text set-search-anchor
-                               (if (eq? searching-direction 'forward)
-                                   end-pos
-                                   start-pos))))
-                     
-                     (send text end-edit-sequence))
-                   
-                   (define owner (or (send text get-active-canvas)
-                                     (send text get-canvas)))
-                   (if owner
-                       (send owner call-as-primary-owner thunk)
-                       (thunk))
-                   #t)])
-            
-            (if (string=? string "")
-                (not-found top-searching-edit #t)
-                (let-values ([(found-edit first-pos)
-                              (find-string-embedded
-                               (if search-start-position 
-                                   top-searching-edit
-                                   searching-edit)
-                               string
-                               searching-direction
-                               (or search-start-position
-                                   (if (eq? 'forward searching-direction)
-                                       (send searching-edit get-end-position)
-                                       (send searching-edit get-start-position)))
-                               'eof #t
-                               (get-case-sensitive-search?)
-                               #t)])
-                  (cond
-                    [(not first-pos)
-                     (if wrap?
-                         (begin
-                           (let-values ([(found-edit pos)
-                                         (find-string-embedded
-                                          top-searching-edit
-                                          string 
-                                          searching-direction
-                                          (if (eq? 'forward searching-direction)
-                                              0
-                                              (send searching-edit last-position))
-                                          'eof #t
-                                          (get-case-sensitive-search?)
-                                          #f)])
-                             (if (not pos)
-                                 (not-found found-edit #f)
-                                 (found found-edit pos))))
-                         (not-found found-edit #f))]
-                    [else
-                     (found found-edit first-pos)])))))))
+      (define str (get-text))
+      (define top-searching-edit (get-searching-text))
+      (when top-searching-edit
+        (define searching-edit (find-searching-edit top-searching-edit))
+        (define (not-found)
+          (when beep?
+            (bell))
+          #f)
+        (cond
+          [(string=? str "")
+           #f]
+          [else
+           (define-values (found-edit first-pos)
+             (find-string-embedded
+              (if search-start-position
+                  top-searching-edit
+                  searching-edit)
+              str
+              searching-direction
+              (or search-start-position
+                  (if (eq? 'forward searching-direction)
+                      (send searching-edit get-end-position)
+                      (send searching-edit get-start-position)))
+              'eof #t
+              (get-case-sensitive-search?)
+              #t
+              #:recur-inside?
+              (λ (x) (is-a? (send x get-editor) text:searching-embedded<%>))))
+           (cond
+             [first-pos
+              (found found-edit first-pos str searching-direction move-anchor?)]
+             [else
+              (cond
+                [wrap?
+                 (define-values (found-edit pos)
+                   (find-string-embedded
+                    top-searching-edit
+                    str
+                    searching-direction
+                    (if (eq? 'forward searching-direction)
+                        0
+                        (send searching-edit last-position))
+                    'eof #t
+                    (get-case-sensitive-search?)
+                    #f
+                    #:recur-inside?
+                    (λ (x) (is-a? (send x get-editor) text:searching-embedded<%>))))
+                 (if pos
+                     (found found-edit pos str searching-direction move-anchor?)
+                     (not-found))]
+                [else
+                 (not-found)])])])))
+
+    (define/private (find-searching-edit top-searching-edit)
+      (let loop ([txt top-searching-edit])
+        (define focus-snip (send txt get-focus-snip))
+        (cond
+          [(and focus-snip (is-a? focus-snip editor-snip%))
+           (loop (send focus-snip get-editor))]
+          [else txt])))
+
+    (define/private (found text first-pos str searching-direction move-anchor?)
+      (define (thunk)
+        (define last-pos ((if (eq? searching-direction 'forward) + -)
+                          first-pos (string-length str)))
+        (define start-pos (min first-pos last-pos))
+        (define end-pos (max first-pos last-pos))
+
+        (send text begin-edit-sequence #t #f)
+        (send text set-caret-owner #f 'display)
+        (send text set-position start-pos end-pos #f #f 'local)
+
+        ;; scroll to the middle if the search result isn't already visible
+        (let ([search-result-line (send text position-line (send text get-start-position))]
+              [bt (box 0)]
+              [bb (box 0)])
+          (send text get-visible-line-range bt bb #f)
+          (unless (< (unbox bt) search-result-line (unbox bb))
+            (let* ([half (sub1 (quotient (- (unbox bb) (unbox bt)) 2))]
+                   [last-pos (send text position-line (send text last-position))]
+                   [top-pos (send text line-start-position
+                                  (max (min (- search-result-line half) last-pos) 0))]
+                   [bottom-pos (send text line-start-position
+                                     (max 0
+                                          (min (+ search-result-line half)
+                                               last-pos)))])
+              (send text scroll-to-position
+                    top-pos
+                    #f
+                    bottom-pos))))
+
+        (when move-anchor?
+          (when (is-a? text text:searching<%>)
+            (send text set-search-anchor
+                  (if (eq? searching-direction 'forward)
+                      end-pos
+                      start-pos))))
+
+        (send text end-edit-sequence))
+
+      (define owner (or (send text get-active-canvas)
+                        (send text get-canvas)))
+      (if owner
+          (send owner call-as-primary-owner thunk)
+          (thunk))
+      #t)
 
     (define/override (on-paint before dc left top right bottom dx dy draw-caret?)
       (super on-paint before dc left top right bottom dx dy draw-caret?)
@@ -2264,7 +2269,7 @@
                 (send dc draw-rectangle (+ dx view-x) (+ view-y dy) view-width view-height)
                 (send dc set-pen pen)
                 (send dc set-brush brush)))))))
-    
+
     (super-new [pref-sym 'framework:search-string])))
 
 (define replace-text%
@@ -2321,7 +2326,7 @@
               (let ([text-to-search (send tlw get-text-to-search)])
                 (when text-to-search
                   (let ([anchor-pos (send text-to-search get-anchor-pos)])
-                    (when anchor-pos 
+                    (when anchor-pos
                       (send text-to-search set-position anchor-pos))))))
             (send tlw hide-search)))))
 
@@ -2332,7 +2337,7 @@
           (when tlw
             (send tlw unhide-search-and-toggle-focus)))))
 
-(define searchable-canvas% 
+(define searchable-canvas%
   (class (canvas:color-mixin canvas:basic%)
     (inherit refresh get-dc get-client-size)
     (define red? #f)
@@ -2568,10 +2573,14 @@
         (define replacee-start-or-pair (send text-to-search get-replace-search-hit))
         (when replacee-start-or-pair
           (define-values (text-to-replace-in replacee-start)
-            (cond
-              [(pair? replacee-start-or-pair)
-               (values (car replacee-start-or-pair) (cdr replacee-start-or-pair))]
-              [else (values text-to-search replacee-start-or-pair)]))
+            (let loop ([last-txt text-to-search]
+                       [replacee-start-or-pair replacee-start-or-pair])
+              (cond
+                [(pair? replacee-start-or-pair)
+                 (loop (car replacee-start-or-pair)
+                       (cdr replacee-start-or-pair))]
+                [else
+                 (values last-txt replacee-start-or-pair)])))
           (define replacee-end (+ replacee-start (send find-edit last-position)))
           (send text-to-replace-in begin-edit-sequence)
           (send text-to-search begin-edit-sequence)
@@ -2600,36 +2609,39 @@
     
     (define/public (replace-all)
       (unhide-search #f)
-      (let ([txt (get-text-to-search)])
-        (when txt
-          (let ([search-str (send find-edit get-text)]
-                [ht (make-hasheq)])
-            (send txt begin-edit-sequence)
-            (hash-set! ht txt #t)
-            (let loop ([txt (pop-all-the-way-out txt)]
-                       [pos 0])
-              (let-values ([(found-txt found-pos) (find-string-embedded txt
-                                                                        search-str
-                                                                        'forward
-                                                                        pos
-                                                                        'eof
-                                                                        #f
-                                                                        case-sensitive-search?
-                                                                        #t)])
-                (when found-pos
-                  (unless (hash-ref ht found-txt #f)
-                    (hash-set! ht found-txt #t)
-                    (send found-txt begin-edit-sequence))
-                  (let ([start (- found-pos (send find-edit last-position))])
-                    (define revision-before (send found-txt get-revision-number))
-                    (send found-txt delete start found-pos)
-                    (define revision-after (send found-txt get-revision-number))
-                    (unless (= revision-before revision-after)
-                      (copy-over replace-edit 0 (send replace-edit last-position) found-txt start))
-                    (loop found-txt (if (= revision-before revision-after)
-                                        found-pos
-                                        (+ start (send replace-edit last-position))))))))
-            (hash-for-each ht (λ (txt _) (send txt end-edit-sequence)))))))
+      (define txt (get-text-to-search))
+      (when txt
+        (define search-str (send find-edit get-text))
+        (define ht (make-mutable-object=-hash))
+        (send txt begin-edit-sequence)
+        (dict-set! ht txt #t)
+        (let loop ([txt (pop-all-the-way-out txt)]
+                   [pos 0])
+          (define-values (found-txt found-pos)
+            (find-string-embedded txt
+                                  search-str
+                                  'forward
+                                  pos
+                                  'eof
+                                  #f
+                                  case-sensitive-search?
+                                  #t
+                                  #:recur-inside?
+                                  (λ (x) (is-a? (send x get-editor) text:searching-embedded<%>))))
+          (when found-pos
+            (unless (dict-ref ht found-txt #f)
+              (dict-set! ht found-txt #t)
+              (send found-txt begin-edit-sequence))
+            (let ([start (- found-pos (send find-edit last-position))])
+              (define revision-before (send found-txt get-revision-number))
+              (send found-txt delete start found-pos)
+              (define revision-after (send found-txt get-revision-number))
+              (unless (= revision-before revision-after)
+                (copy-over replace-edit 0 (send replace-edit last-position) found-txt start))
+              (loop found-txt (if (= revision-before revision-after)
+                                  found-pos
+                                  (+ start (send replace-edit last-position)))))))
+        (dict-for-each ht (λ (txt _) (send txt end-edit-sequence)))))
                              
     (define/private (pop-all-the-way-out txt)
       (let ([admin (send txt get-admin)])
@@ -2812,6 +2824,8 @@
         (end-container-sequence)))
     
     (super-new)))
+
+(define-custom-hash-types object=-hash #:key? object? object=? object=-hash-code)
 
 (define (number->str/comma m)
   (list->string
