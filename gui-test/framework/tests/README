@@ -36,42 +36,6 @@ signal failures when there aren't any.
   | This tests that exit:exit really exits and that the exit callbacks
   | are actually run.
 
-- preferences: prefs.rkt  -- now runs directly via raco test
-
-  | This tests that preferences are saved and restored correctly, both
-  | immediately and across reboots of gracket.
-
-
-- individual object tests:
-
-  | These tests are simple object creation and basic operations.
-  | Each test assumes that the others pass; this may yield strange
-  | error messages when one fails.
-
-  - frames: frame.rkt    -- now runs directly via raco test.
-  - canvases: canvas.rkt -- now runs directly via raco test.
-  - texts:  text.rkt     -- now runs directly via raco test.
-  - pasteboards: |# pasteboard.rkt #|
-
-- keybindings: keys.rkt -- now runs directly via raco test.
-
-  | This tests the misc (non-scheme) keybindings
-
-- group tests: group-test.rkt  -- now runs directly via raco test
-
-  | make sure that mred:the-frame-group records frames correctly.
-  | fake user input expected.
-
-- number snip: number-snip.rkt  -- now runs directly via raco test
-
-  | some tests for the number-snip% class
-
-- scheme tests:
-
-  | Tests the scheme: section
-
-  racket.rkt --- now runs directly via raco test
-
 - panel tests:
 
  |# panel.rkt #|
