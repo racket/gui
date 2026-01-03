@@ -1,6 +1,7 @@
 #lang racket/base
 
   (require string-constants
+           racket/match
            racket/class
            "sig.rkt"
            "../preferences.rkt"
@@ -48,7 +49,6 @@
   (define %
     (class object%
       
-      [define active-frame #f]
       [define most-recent-window-box (make-weak-box #f)]
       [define frame-counter 0]
       [define frames null]
@@ -195,30 +195,49 @@
       
       (define/public (get-active-frame)
         (cond
-          [active-frame active-frame]
           [(null? frames) #f]
           [else (frame-frame (car frames))]))
       
       (define/public (set-active-frame f)
+        (define active-frame (get-active-frame))
         (when (and active-frame
                    (not (eq? active-frame f)))
           (set! most-recent-window-box (make-weak-box active-frame)))
-        (set! active-frame f))
-      
+        (move-to-front f))
+
       (define/public (insert-frame new-frame)
-        (unless (memf (λ (fr) (eq? (frame-frame fr) new-frame))
-                      frames)
+        (define already-has-new-frame? (move-to-front new-frame))
+        (unless already-has-new-frame?
           (set! frame-counter (add1 frame-counter))
-          (let ([new-frames (cons (make-frame new-frame frame-counter)
-                                  frames)])
-            (set! frames new-frames)
-            (update-close-menu-item-state)
-            (insert-windows-menu new-frame))
+          (set! frames (cons (make-frame new-frame frame-counter) frames))
+          (update-close-menu-item-state)
+          (insert-windows-menu new-frame)
           (todo-to-new-frames new-frame)))
+
+      ;; move-to-front : (is-a?/c frame%) -> boolean
+      ;; effect: changes `frames` so that the frame struct
+      ;;         containing `f` is at the front, if there is one
+      ;; returns #t if `f` was in `frames` and #f otherwise
+      (define/private (move-to-front f)
+        (define-values (fst rst)
+          (let loop ([frames frames])
+            (match frames
+              ['() (values #f '())]
+              [(cons fr frames)
+               (cond
+                 [(object=? (frame-frame fr) f)
+                  (values fr frames)]
+                 [else
+                  (define-values (fst more) (loop frames))
+                  (values fst (cons fr more))])])))
+        (cond
+          [fst
+           (set! frames (cons fst rst))
+           #t]
+          [else
+           #f]))
       
       (define/public (remove-frame f)
-        (when (eq? f active-frame)
-          (set! active-frame #f))
         (let ([new-frames
                (remove
                 f frames
@@ -266,8 +285,6 @@
 
       (define/public (get-all-open-files)
         (define the-frames (map frame-frame frames))
-        (when (member active-frame the-frames)
-          (set! the-frames (cons active-frame (remove active-frame the-frames))))
         (for/list ([frame (in-list the-frames)])
           (send frame get-all-open-files)))
       
