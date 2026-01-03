@@ -71,8 +71,11 @@
                   (write new-name-mapping port))
                 #:exists 'truncate
                 #:mode 'text))))
-        (let ([seconds (preferences:get 'framework:autosave-delay)])
-          (start (* 1000 seconds) #t)))
+        (cond
+          [(null? objects) (set! timer #f)]
+          [else
+           (let ([seconds (preferences:get 'framework:autosave-delay)])
+             (start (* 1000 seconds) #t))]))
       (super-new)
       (let ([seconds (preferences:get 'framework:autosave-delay)])
         (start (* 1000 seconds) #t))))
