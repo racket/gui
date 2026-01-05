@@ -189,8 +189,9 @@ Does nothing.
 
 @popupmenuinfo[@elem{administrator's @techlink{display}}
                @elem{top-level editor in this administrator's @techlink{display}}
-               @elem{The result is @racket[#t] if the popup succeeds,
-                  @racket[#f] otherwise (independent of whether the
+               @elem{The result is @racket[#f] if this admin is not connected to
+                   a canvas or the canvas it is connected to does not have an editor,
+                  @racket[#t] otherwise (independent of whether the
                   user selects an item in the popup menu).}]
 
 The menu is displayed at @racket[x] and @racket[y] in editor coordinates.
