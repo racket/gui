@@ -1345,7 +1345,8 @@
                   (let-boxes ([dx 0.0]
                               [dy 0.0])
                       (send canvas get-dc-and-offset dx dy)
-                    (send canvas popup-menu m (->long (- x dx)) (->long (- y dy)))))))))
+                    (send canvas popup-menu m (->long (- x dx)) (->long (- y dy)))
+                    #t))))))
   
   (define/public (adjust-std-flag)
     ;; 1 indicates that this is the sole, main admin. 
