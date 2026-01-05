@@ -75,6 +75,7 @@
 
       (define/private (reset-entire-overview)
         (define h (last-paragraph))
+        (define previous-bmp-width bmp-width)
         (update-bmp-width)
         (define to-create-h (+ h 20))
         (unless (and primary-bmp
@@ -83,6 +84,11 @@
           (set! primary-bmp (unsafe:make-bitmap bmp-width to-create-h))
           (set! secondary-bmp (unsafe:make-bitmap bmp-width to-create-h))
           (set! known-blank 0))
+        (when (> previous-bmp-width bmp-width)
+          (invalidate-entire-overview-region
+           #t
+           #:extra-left-width
+           (- previous-bmp-width bmp-width)))
         (union-invalid 0 h)
         (maybe-queue-do-a-little-work?))
 
@@ -266,7 +272,7 @@
           ;; invalidates only the newly exposed region
           (invalidate-entire-overview-region #f)))
 
-      (define/private (invalidate-entire-overview-region just-union? #:use-this-width [use-this-width #f])
+      (define/private (invalidate-entire-overview-region just-union? #:extra-left-width [extra-left-width 0])
         (define-values (view-height
                         bitmap-first-visible-paragraph
                         top-paragraph
@@ -274,8 +280,8 @@
                         bitmap-x-coordinate
                         bitmap-y-coordinate)
           (get-bitmap-placement-info))
-        (define x (- bitmap-x-coordinate extra-blue-parts-margin))
-        (define w (+ (or use-this-width bmp-width) extra-blue-parts-margin))
+        (define x (- bitmap-x-coordinate extra-blue-parts-margin extra-left-width))
+        (define w (+ bmp-width extra-left-width extra-blue-parts-margin))
         (cond
           [just-union?
            (union-region-to-invalidate x
@@ -508,7 +514,7 @@
                   ;; if the bitmap gets narrower,
                   ;; the invalidate-entire-overview-region
                   ;; below won't invalidate a big enough region
-                  (invalidate-entire-overview-region #t #:use-this-width previous-bmp-width))
+                  (invalidate-entire-overview-region #t #:extra-left-width (- previous-bmp-width bmp-width)))
                 (not (= previous-bmp-width bmp-width))]
                [else #f]))
            (when bmp-width-changed?
