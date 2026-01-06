@@ -370,7 +370,8 @@
    (find-object radio-box% in-cb)
    (λ (rb) 
      (cond
-       [(string? state) 
+       [(or (string? state)
+            (regexp? state))
         (let ([total (send rb get-number)])
           (let loop ([n total])
             (cond
@@ -897,7 +898,9 @@
   (test:top-level-focus-window-has?
    (λ (c)
      (and (is-a? c button%)
-          (string=? (send c get-label) str)
+          (if (string? str)
+              (string=? (send c get-label) str)
+              (regexp-match str (send c get-label)))
           (send c is-enabled?)
           (send c is-shown?)))))
 
@@ -912,7 +915,8 @@
 (provide/doc
  (proc-doc/names
   test:button-push
-  (-> (or/c (and/c string?
+  (-> (or/c (and/c (or/c string?
+                         regexp?)
                    label-of-enabled/shown-button-in-top-level-window?)
             (and/c (is-a?/c button%)
                    enabled-shown-button?
@@ -940,14 +944,14 @@
  
  (proc-doc/names
   test:set-radio-box-item!
-  (-> (or/c string? regexp?) void?)
+  (-> (or/c (or/c string? regexp?) regexp?) void?)
   (entry)
   @{Finds a @racket[radio-box%] that has a label matching @racket[entry]
           and sets the radio-box to @racket[entry].})
  
  (proc-doc/names
   test:set-check-box!
-  (-> (or/c string? (is-a?/c check-box%)) boolean? void?)
+  (-> (or/c string? regexp? (is-a?/c check-box%)) boolean? void?)
   (check-box state)
   @{Clears the @racket[check-box%] item if @racket[state] is @racket[#f], and sets it
   otherwise.
@@ -958,7 +962,7 @@
  
  (proc-doc/names
   test:set-choice!
-  (-> (or/c string? (is-a?/c choice%)) (or/c string? (and/c number? exact? integer? positive?))
+  (-> (or/c string? regexp? (is-a?/c choice%)) (or/c string? regexp? (and/c number? exact? integer? positive?))
       void?)
   (choice str)
   @{Selects @racket[choice]'s item @racket[str]. If @racket[choice] is a string,
@@ -967,8 +971,8 @@
  
  (proc-doc/names
   test:set-list-box!
-  (-> (or/c string? (is-a?/c list-box%)) 
-      (or/c string? exact-nonnegative-integer?) 
+  (-> (or/c string? regexp? (is-a?/c list-box%)) 
+      (or/c string? regexp? exact-nonnegative-integer?) 
       void?)
   (choice str/index)
   @{Selects @racket[list-box]'s item @racket[str]. If @racket[list-box] is a string,
@@ -1131,10 +1135,10 @@
  
  (proc-doc/names
   label-of-enabled/shown-button-in-top-level-window?
-  (-> string? boolean?)
+  (-> (or/c string? regexp?) boolean?)
   (label)
   @{Returns @racket[#t] when @racket[label] is
-            the label of an enabled and shown
+            the label (or is a regular expression matching the label) of an enabled and shown
             @racket[button%] instance that
             is in the top-level window that currently
             has the focus, using @racket[test:top-level-focus-window-has?].})
