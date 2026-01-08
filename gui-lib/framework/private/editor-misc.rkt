@@ -662,7 +662,7 @@
 
 (define backup-autosave-mixin
   (mixin (basic<%>) (backup-autosave<%> autosave:autosavable<%>)
-    (inherit is-modified? get-filename save-file)
+    (inherit is-modified? get-filename save-file find-first-snip)
     [define auto-saved-name #f]
     [define auto-save-out-of-date? #t]
     [define auto-save-error? #f]
@@ -724,7 +724,14 @@
                 [orig-format (and (is-a? this text%)
                                   (send this get-file-format))])
            (when (is-a? this text%)
-             (send this set-file-format 'standard))
+             (define all-string-snips?
+               (let loop ([s (find-first-snip)])
+                 (cond
+                   [(not s) #t]
+                   [(is-a? s string-snip%)
+                    (loop (send s next))]
+                   [else #f])))
+             (send this set-file-format (if all-string-snips? 'text 'standard)))
            (with-handlers ([exn:fail?
                             (λ (exn)
                               (show-autosave-error exn orig-name)
