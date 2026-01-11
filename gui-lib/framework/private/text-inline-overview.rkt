@@ -66,7 +66,7 @@
             [enabled?
              (reset-entire-overview)]
             [else
-             (invalidate-entire-overview-region #f)
+             (when (get-admin) (invalidate-entire-overview-region #f))
              (set! bmp-width 0)
              (set! scratch-string #f)
              (set! primary-bmp #f)
@@ -84,7 +84,7 @@
           (set! primary-bmp (unsafe:make-bitmap bmp-width to-create-h))
           (set! secondary-bmp (unsafe:make-bitmap bmp-width to-create-h))
           (set! known-blank 0))
-        (when (> previous-bmp-width bmp-width)
+        (when (and (> previous-bmp-width bmp-width) (get-admin))
           (invalidate-entire-overview-region
            #t
            #:extra-left-width
@@ -270,7 +270,8 @@
           ;; we a scroll happens, we need to redraw
           ;; the the entire overview region, as scrolling
           ;; invalidates only the newly exposed region
-          (invalidate-entire-overview-region #f)))
+          (when (get-admin)
+            (invalidate-entire-overview-region #f))))
 
       (define/private (invalidate-entire-overview-region just-union? #:extra-left-width [extra-left-width 0])
         (define-values (view-height
@@ -510,7 +511,7 @@
                 (set! width-could-have-changed-since-last-do-a-little-work? #f)
                 (define previous-bmp-width bmp-width)
                 (update-bmp-width)
-                (when (> previous-bmp-width bmp-width)
+                (when (and (get-admin) (> previous-bmp-width bmp-width))
                   ;; if the bitmap gets narrower,
                   ;; the invalidate-entire-overview-region
                   ;; below won't invalidate a big enough region
