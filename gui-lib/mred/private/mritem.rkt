@@ -903,7 +903,8 @@
                                            (sub1 num-columns)
                                            #f)))
                     (check-item 'set-string n)
-                    (send this -set-list-string n d)
+                    (when (= col 0)
+                      (send this -set-list-string n d))
                     (send wx set-string n d col)))]
      [set-data (entry-point (lambda (n d) (check-item 'set-data n) (send wx set-data n d)))]
      [get-first-visible-item (entry-point (lambda () (send wx get-first-item)))]
