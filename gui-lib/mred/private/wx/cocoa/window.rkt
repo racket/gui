@@ -619,7 +619,7 @@
     (set-ivar! cocoa wxb (->wxb this))
 
     (unless no-show?
-      (show #t)) 
+      (show #t))
 
     (define/public (focus-is-on on?)
       (void))

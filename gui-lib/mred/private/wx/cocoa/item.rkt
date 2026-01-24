@@ -34,7 +34,8 @@
 
 (defclass item% window%
   (inherit get-cocoa
-           is-window-enabled?)
+           is-window-enabled?
+           is-enabled-to-root?)
 
   (init-field callback)
 
@@ -53,6 +54,9 @@
   (def/public-unimplemented set-label)
   (def/public-unimplemented get-label)
   (super-new)
+
+  (unless (is-enabled-to-root?)
+    (tellv (get-cocoa-control) setEnabled: #:type _BOOL #false))
 
   (define/public (init-font cocoa font)
     (install-control-font cocoa font)))

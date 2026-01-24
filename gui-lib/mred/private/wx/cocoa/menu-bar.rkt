@@ -203,7 +203,7 @@
                    (list (cons (car i) (cons str (cddr i)))))
                  (drop menus (add1 pos))))
     (when (eq? current-mb this)
-      (tellv (tell cocoa-mb itemAtIndex: #:type _NSInteger 1)
+      (tellv (tell (tell cocoa-mb itemAtIndex: #:type _NSInteger 1) submenu)
              setTitle: #:type _NSString (clean-menu-label str))))
 
   (define/public (do-on-menu-click)

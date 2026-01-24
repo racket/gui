@@ -61,6 +61,7 @@
 
   (define/override (enable on?) (void))
   (define/override (is-window-enabled?) #t)
+  (define/override (is-enabled-to-root?) #t)
 
   (define/public (get-range)
     (inexact->exact (floor (tell #:type _double cocoa maxValue))))
