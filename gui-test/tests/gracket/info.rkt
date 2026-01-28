@@ -6,3 +6,5 @@
                           "showkey.rkt"
                           "unflushed-circle.rkt"
                           "wxme-random.rkt"))
+
+(define test-xvfb-paths '("wxme.rkt"))
