@@ -8,7 +8,8 @@
          "const.rkt"
          "utils.rkt"
          "window.rkt"
-         "../common/event.rkt")
+         "../common/event.rkt"
+         "liquid-glass.rkt")
 
 (provide 
  (protect-out choice%))
@@ -58,7 +59,13 @@
     (callback this (new control-event%
                         [event-type 'choice]
                         [time-stamp (current-milliseconds)])))
-  
+
+  (define/override (get-margin-adjustments)
+    (if (and (not liquid-glass?)
+             (version-10.9-or-later?))
+        (values 0 2 0 0)
+        (values 0 0 0 0)))
+
   (define/public (set-selection i)
     (tellv (get-cocoa) selectItemAtIndex: #:type _NSInteger i))
   (define/public (get-selection)

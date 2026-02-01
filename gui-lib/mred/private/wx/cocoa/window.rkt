@@ -738,13 +738,26 @@
 
     (define/public (is-group?) #f)
 
+    (define/public (get-margin-adjustments) (values 0 0 0 0))
+
     (define/public (get-frame)
       (tellv cocoa layoutSubtreeIfNeeded)
-      (tell #:type _NSRect cocoa frame))
+      (define r (tell #:type _NSRect cocoa frame))
+      (define-values (lm tm rm bm) (get-margin-adjustments))
+      (cond
+        [(= 0 lm tm rm bm) r]
+        [else
+         (define p (NSRect-origin r))
+         (define s (NSRect-size r))
+         (make-NSRect (make-NSPoint (- (NSPoint-x p) lm)
+                                    (- (NSPoint-y p) tm))
+                      (make-NSSize (+ (NSSize-width s) lm rm)
+                                   (+ (NSSize-height s) tm bm)))]))
 
     (define/public (set-frame x y w h)
-      (tellv cocoa setFrame: #:type _NSRect (make-NSRect (make-NSPoint x (flip y h))
-                                                         (make-NSSize w h))))
+      (define-values (lm tm rm bm) (get-margin-adjustments))
+      (tellv cocoa setFrame: #:type _NSRect (make-NSRect (make-NSPoint (+ x lm) (flip (+ y tm) (- h tm bm)))
+                                                         (make-NSSize (max 0 (- w lm rm)) (max 0 (- h tm bm))))))
 
     (define/public (flip y h)
       (if parent

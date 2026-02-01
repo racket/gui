@@ -200,10 +200,10 @@
           (if (null? children-info)
               null
               (let ([r (super-place-children children-info width height)])
-                (if horiz?
+                (if (and horiz? (pair? (cdr r)))
                     ;; Line up label right with text:
-                    (cons (list* (caar r) (+ (cadar r) dy) (cddar r))
-                          (cdr r))
+                    (list (list* (caar r) (+ (cadar r) dy) (cddar r))
+                          (list* (caadr r) (+ (cadadr r)) (cddadr r)))
                     r))))])
       (super-make-object #f proxy parent (if (memq 'deleted style) '(deleted) null) #f)
       (unless (memq 'deleted style)
@@ -215,6 +215,11 @@
          [(memq 'horizontal-label style) #t]
          [else (eq? (send (send parent get-window) get-label-position) 'horizontal)]))
       (define dy 0)
+      (define label-align-margin (if (memq 'combo style)
+                                     0
+                                     (case (system-type)
+                                       [(macosx) 2]
+                                       [else 0])))
       (define p
         (if horiz?
             this
@@ -286,7 +291,7 @@
         (send l skip-subwindow-events? #t)
         (send l x-margin 0))
       (send c set-x-margin 2)
-      (send c set-y-margin 2)
+      (send c set-y-margin (+ 2 label-align-margin))
       (send e set-line-spacing 0)
       (send e set-paste-text-only #t)
       (send e auto-wrap (and multi? (not (memq 'hscroll style))))

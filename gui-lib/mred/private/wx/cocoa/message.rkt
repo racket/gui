@@ -117,6 +117,16 @@
              [callback void]
              [no-show? (memq 'deleted style)])
 
+  (define/override (get-margin-adjustments) (values 0
+                                                    (if (or liquid-glass?
+                                                            (not (version-10.9-or-later?)))
+                                                        0
+                                                        -3)
+                                                    0
+                                                    (if liquid-glass?
+                                                        -5
+                                                        0)))
+
   (define/override (set-label label)
     (set! text-label? (string? label))
     (cond

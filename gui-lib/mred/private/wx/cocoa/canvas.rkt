@@ -513,6 +513,14 @@
      (define/override (set-size x y w h)
        (do-set-size x y w h))
 
+     (define/override (get-margin-adjustments)
+       (if (and is-combo?
+                (version-10.9-or-later?))
+           (if liquid-glass?
+               (values 0 -1 0 0)
+               (values 0 0 0 1))
+           (values 0 0 0 0)))
+
      (define tr #f)
 
      (define/override (show on?)
