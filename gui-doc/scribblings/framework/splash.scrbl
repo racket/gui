@@ -32,7 +32,9 @@ that number to control the gauge along the bottom of the splash screen.
                               (is-a?/c bitmap%)
                               (cons/c (is-a?/c bitmap%)
                                       (is-a?/c bitmap%)))
-                        #f])
+                        #f]
+                       [#:increment-splash increment-splash
+                        (or/c #f (-> (-> void?) any))])
          void?]{
   Starts a new splash screen. The splash screen is created in its own, new 
   @tech[#:doc '(lib "scribblings/gui/gui.scrbl") #:key "eventspace"]{eventspace}.
@@ -63,6 +65,14 @@ that number to control the gauge along the bottom of the splash screen.
 
   The @racket[frame-icon] is used just like the value of the parameter @racket[frame:current-icon] is used,
   but for the splash screen.
+
+ If @racket[increment-splash] is @racket[#false],
+ @racket[start-splah] sets the @racket[current-load]
+ parameter to a function that advances the splash screen
+ progress bar. If @racket[increment-splash] is a function, it
+ calls the function with a thunk that will advance the splash
+ screen progress bar.
+
 }
 
 @defproc[(shutdown-splash) void?]{
