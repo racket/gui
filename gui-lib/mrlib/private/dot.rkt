@@ -24,7 +24,8 @@
   '("/usr/bin"
     "/bin"
     "/usr/local/bin"
-    "/opt/local/bin/"))
+    "/opt/local/bin/"
+    "/opt/homebrew/bin/"))
 
 (define dot.exe (if (eq? (system-type) 'windows) "dot.exe" "dot"))
 (define neato.exe (if (eq? (system-type) 'windows) "neato.exe" "neato"))
