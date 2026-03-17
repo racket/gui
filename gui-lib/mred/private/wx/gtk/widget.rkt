@@ -1,5 +1,6 @@
 #lang racket/base
 (require ffi/unsafe
+         ffi/unsafe/define
          racket/class
          "../../syntax.rkt"
          "../../lock.rkt"
@@ -19,6 +20,8 @@
 	      gtk_widget_queue_draw
 	      gtk_widget_get_toplevel
 	      gtk_widget_translate_coordinates
+              gtk_widget_get_realized
+              gtk_widget_set_visual
 
               gtk_vbox_new
               gtk_hbox_new
@@ -42,6 +45,10 @@
 						   (x : (_ptr o _int)) (y : (_ptr o _int))
 						   -> _gboolean
 						   -> (values x y)))
+(define-gtk gtk_widget_get_realized (_fun _GtkWidget -> _gboolean)
+  #:fail (λ () #f))
+(define-gtk gtk_widget_set_visual (_fun _GtkWidget _GdkVisual -> _void)
+  #:fail (λ () #f))
 
 (define-signal-handler connect-destroy "destroy"
   (_fun _GtkWidget _pointer -> _void)

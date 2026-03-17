@@ -6,6 +6,8 @@
               _GtkWidget _GtkWindow
               _GdkDisplay
               _GdkScreen
+              _GdkVisual
+              _GdkPixmap
               _gpointer
               _GType
               _GdkEventType
@@ -49,6 +51,8 @@
 
 (define _GdkDisplay (_cpointer 'GdkDisplay))
 (define _GdkScreen (_cpointer 'GdkScreen))
+(define _GdkVisual (_cpointer 'GdkVisual))
+(define _GdkPixmap (_cpointer 'GdkPixmap))
 
 (define _gpointer _GtkWidget)
 
