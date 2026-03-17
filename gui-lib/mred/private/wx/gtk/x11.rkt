@@ -2,6 +2,7 @@
 (require ffi/unsafe
          ffi/unsafe/define
          ffi/unsafe/alloc
+         "types.rkt"
          "utils.rkt")
 
 (provide 
@@ -19,9 +20,14 @@
               gdk_x11_display_get_xdisplay
               gdk_x11_visual_get_xvisual
               gdk_x11_screen_get_screen_number
+              gdk_x11_screen_lookup_visual
 	      gdk_x11_window_get_xid
 
 	      _Display
+              _Visual
+              _XVisualInfo
+              _XVisualInfo-pointer
+              (struct-out XVisualInfo)
 	      _Window
 	      _Pixmap
 	      XCreatePixmap
@@ -35,14 +41,22 @@
   #:default-make-fail make-not-available)
 
 (define _GdkDrawable _pointer)
-(define _GdkDisplay (_cpointer 'GdkDisplay))
-(define _GdkWindow (_cpointer 'GdkWindow))
-(define _GdkScreen (_cpointer 'GdkScreen))
-(define _GdkVisual (_cpointer 'GdkVisual))
-(define _GdkPixmap (_cpointer 'GdkPixmap))
 (define _Visual (_cpointer 'Visual))
+(define _VisualID _ulong)
 (define _Display (_cpointer 'Display))
 (define _Drawable _ulong)
+
+(define-cstruct _XVisualInfo
+  ([visual _Visual]
+   [visual-id _VisualID]
+   [screen _int]
+   [depth _int]
+   [class _int]
+   [red-mask _ulong]
+   [green-mask _ulong]
+   [blue-mask _ulong]
+   [colormap-size _int]
+   [bits-per-rgb _int]))
 
 ;; This should be `_ulong`, but we use pointers for various
 ;; reasons, including support for dealloctaors:
@@ -86,6 +100,9 @@
   #:make-fail make-not-available)
 
 (define-gdk gdk_x11_screen_get_screen_number (_fun _GdkScreen -> _int)
+  #:make-fail make-not-available)
+
+(define-gdk gdk_x11_screen_lookup_visual (_fun _GdkScreen _VisualID -> _GdkVisual)
   #:make-fail make-not-available)
 
 (define-x11 XFreePixmap (_fun _Display _Pixmap -> _void)

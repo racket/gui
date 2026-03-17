@@ -166,7 +166,6 @@
 ;; GLX #defines/typedefs/enums
 (define _GLXFBConfig (_cpointer 'GLXFBConfig))
 (define _GLXContext (_cpointer/null 'GLXContext))
-(define _XVisualInfo (_cpointer 'XVisualInfo))
 ;; Attribute tokens for glXGetConfig variants (all GLX versions):
 (define GLX_DOUBLEBUFFER     5)
 (define GLX_STEREO           6)
@@ -237,11 +236,11 @@
   (_fun _Display _GLXContext -> _bool))
 
 (define-glx glXGetVisualFromFBConfig
-  (_fun _Display _GLXFBConfig -> _XVisualInfo)
+  (_fun _Display _GLXFBConfig -> _XVisualInfo-pointer)
   #:wrap (allocator XFree))
 
 (define-glx glXCreateGLXPixmap
-  (_fun _Display _XVisualInfo _XID -> _XID))
+  (_fun _Display _XVisualInfo-pointer _XID -> _XID))
 
 (define-glx glXDestroyGLXPixmap
   (_fun _Display _XID -> _void))
@@ -573,6 +572,67 @@
   (define-values (err value) (glXGetFBConfigAttrib xdisplay cfg attrib))
   (if (= err Success) value bad-value))
 
+;; (or/c #f _GtkWidget) gl-config% boolean? -> (or/c _GLXFBConfig #f)
+(define (choose-glx-fbconfig widget conf wants-double?)
+  (define glx-version (get-glx-version))
+
+  ;; If widget isn't #f, use its display and screen
+  (define display (gtk-maybe-widget-get-display widget))
+  (define screen (gtk-maybe-widget-get-screen widget))
+
+  ;; Get the X objects wrapped by the GDK objects
+  (define xdisplay (gdk_x11_display_get_xdisplay display))
+  (define xscreen (gdk_x11_screen_get_screen_number screen))
+
+  ;; Create an attribute list using the GL config
+  (define xattribs
+    (append
+     ;; Be aware: we may get double buffering even if we don't ask for it
+     (if wants-double?
+         (if (send conf get-double-buffered) (list GLX_DOUBLEBUFFER True) null)
+         null)
+     (if (send conf get-stereo) (list GLX_STEREO True) null)
+     ;; Finish out with standard GLX 1.3 attributes
+     (list
+      GLX_X_RENDERABLE True  ; yes, we want to use OpenGL to render today
+      GLX_DEPTH_SIZE (send conf get-depth-size)
+      GLX_STENCIL_SIZE (send conf get-stencil-size)
+      GLX_ACCUM_RED_SIZE (send conf get-accum-size)
+      GLX_ACCUM_GREEN_SIZE (send conf get-accum-size)
+      GLX_ACCUM_BLUE_SIZE (send conf get-accum-size)
+      GLX_ACCUM_ALPHA_SIZE (send conf get-accum-size)
+      ;; GLX_SAMPLES is handled below - GLX regards it as an absolute lower bound, which makes it
+      ;; too easy for user programs to fail to get a context
+      None)))
+
+  (define multisample-size (send conf get-multisample-size))
+
+  ;; Get all framebuffer configs for this display and screen that match the requested attributes,
+  ;; then sort them to put the best in front
+  ;; GLX already sorts them pretty well, so we just need a stable sort on multisamples at the moment
+  (define cfgs
+    (let* ([cfgs  (cvector->list (glXChooseFBConfig xdisplay xscreen xattribs))]
+           ;; Keep all configs with multisample size <= requested (i.e. make multisample-size an
+           ;; abolute upper bound)
+           [cfgs  (if (< glx-version #e1.4)
+                      cfgs
+                      (filter (λ (cfg)
+                                (define m (glx-get-fbconfig-attrib xdisplay cfg GLX_SAMPLES 0))
+                                (<= m multisample-size))
+                              cfgs))]
+           ;; Sort all configs by multisample size, decreasing
+           [cfgs  (if (< glx-version #e1.4)
+                      cfgs
+                      (sort cfgs >
+                            #:key (λ (cfg) (glx-get-fbconfig-attrib xdisplay cfg GLX_SAMPLES 0))
+                            #:cache-keys? #t))])
+      cfgs))
+
+  ;; The framebuffer configs are sorted best-first, so choose the first
+  (if (null? cfgs)
+      #f
+      (car cfgs)))
+
 ;; (or/c #f _GtkWidget) (or/c _GdkDrawable (is-a/c bitmap%) gl-config% boolean? -> gl-context%
 ;;   where X11 uses _GdkDrawable = (or/c _GtkWindow _GdkPixmap)
 ;;         and Wayland uses bitmap% that holds a Cairo ARGB32 image surface
@@ -711,67 +771,17 @@
     ctxt]
    [else
     (define glx-version (get-glx-version))
-
-    ;; If widget isn't #f, use its display and screen
     (define display (gtk-maybe-widget-get-display widget))
-    (define screen (gtk-maybe-widget-get-screen widget))
-
-    ;; Get the X objects wrapped by the GDK objects
     (define xdisplay (gdk_x11_display_get_xdisplay display))
-    (define xscreen (gdk_x11_screen_get_screen_number screen))
-
-    ;; Create an attribute list using the GL config
-    (define xattribs
-      (append
-       ;; Be aware: we may get double buffering even if we don't ask for it
-       (if wants-double?
-           (if (send conf get-double-buffered) (list GLX_DOUBLEBUFFER True) null)
-           null)
-       (if (send conf get-stereo) (list GLX_STEREO True) null)
-       ;; Finish out with standard GLX 1.3 attributes
-       (list
-	GLX_X_RENDERABLE True  ; yes, we want to use OpenGL to render today
-	GLX_DEPTH_SIZE (send conf get-depth-size)
-	GLX_STENCIL_SIZE (send conf get-stencil-size)
-	GLX_ACCUM_RED_SIZE (send conf get-accum-size)
-	GLX_ACCUM_GREEN_SIZE (send conf get-accum-size)
-	GLX_ACCUM_BLUE_SIZE (send conf get-accum-size)
-	GLX_ACCUM_ALPHA_SIZE (send conf get-accum-size)
-	;; GLX_SAMPLES is handled below - GLX regards it as an absolute lower bound, which makes it
-	;; too easy for user programs to fail to get a context
-	None)))
-
-    (define multisample-size (send conf get-multisample-size))
-
-    ;; Get all framebuffer configs for this display and screen that match the requested attributes,
-    ;; then sort them to put the best in front
-    ;; GLX already sorts them pretty well, so we just need a stable sort on multisamples at the moment
-    (define cfgs
-      (let* ([cfgs  (cvector->list (glXChooseFBConfig xdisplay xscreen xattribs))]
-             ;; Keep all configs with multisample size <= requested (i.e. make multisample-size an
-             ;; abolute upper bound)
-             [cfgs  (if (< glx-version #e1.4)
-			cfgs
-			(filter (λ (cfg)
-                                  (define m (glx-get-fbconfig-attrib xdisplay cfg GLX_SAMPLES 0))
-                                  (<= m multisample-size))
-				cfgs))]
-             ;; Sort all configs by multisample size, decreasing
-             [cfgs  (if (< glx-version #e1.4)
-			cfgs
-			(sort cfgs >
-                              #:key (λ (cfg) (glx-get-fbconfig-attrib xdisplay cfg GLX_SAMPLES 0))
-                              #:cache-keys? #t))])
-	cfgs))
- 
+    (define cfg (choose-glx-fbconfig widget conf wants-double?))
     (cond
-     [(null? cfgs)  #f]
-     [else
-      ;; The framebuffer configs are sorted best-first, so choose the first
-      (define cfg (car cfgs))
+     [cfg
       (define share-gl
 	(let ([share-ctxt  (send conf get-share-context)])
           (and share-ctxt (send share-ctxt get-handle))))
+
+      (when (and widget (send conf get-sync-swap))
+        (glXSwapIntervalEXT xdisplay (gdk_x11_drawable_get_xid drawable) 1))
 
       ;; Get a GL context
       (define gl
@@ -787,9 +797,6 @@
       ;; The above will return a direct rendering context when it can
       ;; If it doesn't, the context will be version 1.4 or lower, unless GLX is implemented with
       ;; proprietary extensions (NVIDIA's drivers sometimes do this)
-
-      (when (and widget (send conf get-sync-swap))
-	(glXSwapIntervalEXT xdisplay (gdk_x11_drawable_get_xid drawable) 1))
 
       ;; Now wrap the GLX context in a gl-context%
       (cond
@@ -820,7 +827,8 @@
            (unless (and gtk3? (not widget)) (g_object_unref drawable))
            (g_object_unref display)))
         ctxt]
-       [else  #f])])]))
+       [else  #f])]
+     [else #f])]))
 
 (define (make-gtk-widget-gl-context widget conf)
   (call-as-atomic
@@ -842,7 +850,20 @@
 (define widget-config-hash (make-weak-hasheq))
 
 (define (prepare-widget-gl-context widget conf)
-  (hash-set! widget-config-hash widget (if conf conf (make-object gl-config%))))
+  (hash-set! widget-config-hash widget (if conf conf (make-object gl-config%)))
+
+  (when (and gtk_widget_set_visual (not wayland?))
+    (cond
+      [(and gtk_widget_get_realized
+            (gtk_widget_get_realized widget))
+       (log-warning "prepare-widget-gl-context: widget is already realized, cannot set visual from FBConfig")]
+      [else
+       (define cfg (choose-glx-fbconfig widget conf #t))
+       (define display (gtk-maybe-widget-get-display widget))
+       (define screen (gtk-maybe-widget-get-screen widget))
+       (define xdisplay (gdk_x11_display_get_xdisplay display))
+       (define xvisual-id (XVisualInfo-visual-id (glXGetVisualFromFBConfig xdisplay cfg)))
+       (gtk_widget_set_visual widget (gdk_x11_screen_lookup_visual screen xvisual-id))])))
 
 (define (create-widget-gl-context widget)
   (define conf (hash-ref widget-config-hash widget #f))
