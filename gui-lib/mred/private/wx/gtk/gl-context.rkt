@@ -422,7 +422,8 @@
 
     (define/public (gl-update-size x y w h)
       (when win
-	(wl_egl_window_resize win w h 0 0)
+	(define scale (if widget (gtk_widget_get_scale_factor widget) 1))
+	(wl_egl_window_resize win (* scale w) (* scale h) 0 0)
 	(when (and widget wl-subsurface)
 	  (define toplevel (gtk_widget_get_toplevel widget))
 	  (define-values (dx dy)
@@ -702,10 +703,11 @@
 				     (error 'EGL "subcompositor failed")))
 
 	(define (create recreate?)
+	  (define scale (gtk_widget_get_scale_factor widget))
 	  (define-values (width height)
 	    (let ([a (widget-allocation widget)])
-	      (values (GtkAllocation-width a)
-		      (GtkAllocation-height a))))
+              (values (* scale (GtkAllocation-width a))
+                      (* scale (GtkAllocation-height a)))))
 
 	  (define wl-surface/sub (or (wayland-compositor-create-surface wl-compositor)
 				     (error 'EGL "subsurface create failed")))
@@ -728,6 +730,7 @@
 	      (wayland-region-destroy region))
 	    (wayland-subsurface-set-position wl-subsurface dx dy)
 	    (wayland-subsurface-set-sync wl-subsurface #f)
+	    (wayland-surface-set-buffer-scale wl-surface/sub scale)
 	    (wayland-surface-commit wl-surface/sub)
 	    (wayland-surface-commit wl-surface))
 

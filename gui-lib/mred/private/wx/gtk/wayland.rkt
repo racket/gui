@@ -12,6 +12,7 @@
 	 wayland-subsurface-set-position
 	 wayland-subsurface-set-sync
 	 wayland-surface-commit
+         wayland-surface-set-buffer-scale
 	 wayland-surface-destroy
 	 wayland-roundtrip
 	 wayland-display-dispatch-pending
@@ -62,6 +63,7 @@
 (define WL_SURFACE_FRAME 3)
 (define WL_SURFACE_SET_INPUT_REGION 5)
 (define WL_SURFACE_COMMIT 6)
+(define WL_SURFACE_SET_BUFFER_SCALE 8)
 (define WL_REGION_DESTROY 0)
 
 (define _registry (_cpointer/null 'wl_registry))
@@ -129,6 +131,14 @@
   (_fun #:varargs-after 5
 	_pointer _uint32 _pointer _uint32
 	_uint32
+	-> _pointer
+	-> (void))
+  #:c-id wl_proxy_marshal_flags)
+(define-wayland wl_proxy_marshal_flags/wl_surface_set_buffer_scale
+  (_fun #:varargs-after 5
+	_pointer _uint32 _pointer _uint32
+	_uint32
+	_int32
 	-> _pointer
 	-> (void))
   #:c-id wl_proxy_marshal_flags)
@@ -225,6 +235,14 @@
    WL_SURFACE_COMMIT
    #f (wl_proxy_get_version surface)
    0))
+
+(define (wayland-surface-set-buffer-scale surface scale)
+  (wl_proxy_marshal_flags/wl_surface_set_buffer_scale
+   surface
+   WL_SURFACE_SET_BUFFER_SCALE
+   #f (wl_proxy_get_version surface)
+   0
+   scale))
 
 (define (wayland-surface-destroy surface)
   (wl_proxy_marshal_flags/wl_<object>_destroy
