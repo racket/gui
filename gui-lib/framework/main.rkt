@@ -647,7 +647,9 @@ was never saved, then the first element of the list is @racket[#f].
   path-utils:generate-autosave-name
   (-> (or/c #f path-string? path-for-some-system?) path?)
   (filename)
-  @{Generates a name for an autosave file from @racket[filename].})
+  @{Generates a name for an autosave file from @racket[filename] and
+registers the mapping from @racket[filename] to the result in the autosave table of contents,
+@racket[autosave:current-toc-path].})
 
  (proc-doc/names
   path-utils:generate-backup-name
