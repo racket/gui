@@ -4,6 +4,7 @@
          racket/unit
          racket/file
          racket/match
+         racket/list
          "sig.rkt"
          "text-sig.rkt"
          "../gui-utils.rkt"
@@ -24,13 +25,11 @@
           [prefix group: framework:group^]
           [prefix canvas: framework:canvas^])
   
-  (export framework:autosave^)
+  (export framework:autosave/int^)
   
   (define autosavable<%>
     (interface ()
       do-autosave))
-  
-  (define objects null)
   
   (define current-toc-path
     (make-parameter
@@ -40,98 +39,132 @@
                    [else "PLT-autosave-toc.rktd"]))))
   (define toc-path (current-toc-path))
 
-  (define (get-autosave-toc-save-filename)
-    (define toc-path (current-toc-path))
-    (define-values (base name dir) (split-path toc-path))
-    (define save-filename-path
-      (case (system-type)
-        [(unix) ".plt-autosave-toc-save.rktd"]
-        [else "PLT-autosave-toc-save.rktd"]))
-    (make-directory* base)
-    (build-path base save-filename-path))
-  
+  #|
+
+  The toc files contain `autosave-toc` entries
+
+  autosave-toc ::= (listof autosave-to-entry)
+  autosave-toc-entry ::=
+    (list/c (or/c #f bytes[filename])  -- filename of the edited file (#f if not yet saved)
+            bytes[filename]))          -- filename of the autosave file
+
+  |#
+
+  (define (with-autosave-filesystem-lock thunk)
+    (define autosave-toc-save-filename (current-toc-path))
+    (call-with-file-lock/timeout
+     autosave-toc-save-filename
+     'exclusive
+     thunk
+     (λ ()
+       ((autosave-lockfile-failure) autosave-toc-save-filename))))
+
+  ;; -> autosave-toc
+  ;; assumes in the dynamic-extent of the thunk passed to with-autosave-filesystem-lock
+  (define (get-autosave-toc-content)
+    (call-with-input-file (current-toc-path)
+      (λ (port)
+        (read port))))
+
+  ;; autosave-toc -> void
+  ;; assumes in the dynamic-extent of the thunk passed to with-autosave-filesystem-lock
+  (define (put-autosave-toc-content toc-content)
+    (call-with-output-file (current-toc-path)
+      (λ (port)
+        (write toc-content port)
+        (newline port))
+      #:exists 'truncate
+      #:mode 'text))
+ 
+  (define-local-member-name add-object)
   (define autosave-timer%
     (class timer%
       (inherit start)
-      (field [last-name-mapping #f])
+      (define objects '())
+      (define last-name-mapping '())
       (define/override (notify)
         (when (preferences:get 'framework:autosaving-on?)
-          (let-values ([(new-objects new-name-mapping) (rebuild-object-list)])
-            (define toc-path (current-toc-path))
-            (define autosave-toc-save-filename (get-autosave-toc-save-filename))
-            (set! objects new-objects)
-            (unless (equal? last-name-mapping new-name-mapping)
-              (set! last-name-mapping new-name-mapping)
-              (when (file-exists? autosave-toc-save-filename)
-                (delete-file autosave-toc-save-filename))
-              (when (file-exists? toc-path)
-                (copy-file toc-path autosave-toc-save-filename))
-              (call-with-output-file toc-path
-                (λ (port)
-                  (write new-name-mapping port))
-                #:exists 'truncate
-                #:mode 'text))))
+          (define-values (new-objects new-name-mapping) (rebuild-object-list))
+          (define toc-path (current-toc-path))
+          (set! objects new-objects)
+          (unless (equal? last-name-mapping new-name-mapping)
+            (define added (remove* last-name-mapping new-name-mapping))
+            (define removed (remove* new-name-mapping last-name-mapping))
+            (set! last-name-mapping new-name-mapping)
+            (with-autosave-filesystem-lock
+                (λ ()
+                  (define old (get-autosave-toc-content))
+                  (define new (remove-duplicates (append (remove* removed old) added)))
+                  (put-autosave-toc-content new)))))
         (cond
-          [(null? objects) (set! timer #f)]
+          [(null? objects) (hash-set! timers (current-eventspace) #f)]
           [else
            (let ([seconds (preferences:get 'framework:autosave-delay)])
              (start (* 1000 seconds) #t))]))
+
+      ;; rebuild-object-list : -> (values (listof (weak-box (is-a?/c editor<%>)))
+      ;;                                  autosave-toc)
+      (define/private (rebuild-object-list)
+        (let loop ([orig-objects objects]
+                   [name-mapping null]
+                   [new-objects null])
+          (if (null? orig-objects)
+              (values new-objects name-mapping)
+              (let* ([object-wb (car orig-objects)]
+                     [object (weak-box-value object-wb)])
+                (if object
+                    (let* ([new-filename (send object do-autosave)]
+                           [tmp-box (box #f)]
+                           [filename (send object get-filename tmp-box)])
+                      (loop (cdr orig-objects)
+                            (if new-filename
+                                (cons (list (and (not (unbox tmp-box))
+                                                 filename
+                                                 (path->bytes filename))
+                                            (and new-filename
+                                                 (path->bytes new-filename)))
+                                      name-mapping)
+                                name-mapping)
+                            (cons object-wb new-objects)))
+                    (loop (cdr orig-objects)
+                          name-mapping
+                          new-objects))))))
+
+      (define/public (add-object b)
+        (set! objects
+              (let loop ([objects objects])
+                (cond
+                  [(null? objects) (list (make-weak-box b))]
+                  [else (let ([weak-box (car objects)])
+                          (if (weak-box-value weak-box)
+                              (cons weak-box (loop (cdr objects)))
+                              (loop (cdr objects))))]))))
+
       (super-new)
       (let ([seconds (preferences:get 'framework:autosave-delay)])
         (start (* 1000 seconds) #t))))
+
+  (define (autosave-lockfile-failure path)
+    (message-box "" (format "Unable to claim lockfile ~a" path)))
   
-  ;; rebuild-object-list : -> (values (listof (weak-box (is-a?/c editor<%>)))
-  ;;                                  (listof (list (union #f string[filename]) string[filename]))
-  (define (rebuild-object-list)
-    (let loop ([orig-objects objects]
-               [name-mapping null]
-               [new-objects null])
-      (if (null? orig-objects)
-          (values new-objects name-mapping)
-          (let* ([object-wb (car orig-objects)]
-                 [object (weak-box-value object-wb)])
-            (if object
-                (let* ([new-filename (send object do-autosave)]
-                       [tmp-box (box #f)]
-                       [filename (send object get-filename tmp-box)])
-                  (loop (cdr orig-objects)
-                        (if new-filename
-                            (cons (list (and (not (unbox tmp-box)) 
-                                             filename
-                                             (path->bytes filename))
-                                        (and new-filename 
-                                             (path->bytes new-filename)))
-                                  name-mapping)
-                            name-mapping)
-                        (cons object-wb new-objects)))
-                (loop (cdr orig-objects)
-                      name-mapping
-                      new-objects))))))
-  
-  (define timer #f)
+  (define timers (make-weak-hash))
   ;; when the autosave delay is changed then we
   ;; trigger an autosave right away and let the
   ;; callback trigger the next one at the right interval
   (preferences:add-callback
    'framework:autosave-delay
    (λ (k v)
-     (when timer
-       (send timer stop)
-       (send timer start 0 #t))))
-  
-
+     (for ([(_ timer) (in-hash timers)])
+       (when timer
+         (send timer stop)
+         (send timer start 0 #t)))))
   
   (define (register b)
+    (define timer (hash-ref timers (current-eventspace) #f))
     (unless timer
-      (set! timer (make-object autosave-timer%)))
-    (set! objects
-          (let loop ([objects objects])
-            (cond
-              [(null? objects) (list (make-weak-box b))]
-              [else (let ([weak-box (car objects)])
-                      (if (weak-box-value weak-box)
-                          (cons weak-box (loop (cdr objects)))
-                          (loop (cdr objects))))]))))
+      (set! timer (make-object autosave-timer%))
+      (hash-set! timers (current-eventspace) timer))
+    (send timer add-object b))
   
   ;; restore-autosave-files/gui : -> void?
   ;; opens a frame that lists the autosave files that have changed.

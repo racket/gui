@@ -123,6 +123,10 @@
      toc-path
      register
      restore-autosave-files/gui))
+(define-signature autosave/int^ extends autosave^
+  (with-autosave-filesystem-lock
+   put-autosave-toc-content
+   get-autosave-toc-content))
   
   (define-signature exit-class^
     ())
