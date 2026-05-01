@@ -62,9 +62,11 @@
   ;; -> autosave-toc
   ;; assumes in the dynamic-extent of the thunk passed to with-autosave-filesystem-lock
   (define (get-autosave-toc-content)
-    (call-with-input-file (current-toc-path)
-      (λ (port)
-        (read port))))
+    (define path (current-toc-path))
+    (cond
+      [(file-exists? path)
+       (call-with-input-file path read)]
+      [else '()]))
 
   ;; autosave-toc -> void
   ;; assumes in the dynamic-extent of the thunk passed to with-autosave-filesystem-lock
