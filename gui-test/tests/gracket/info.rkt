@@ -7,4 +7,4 @@
                           "unflushed-circle.rkt"
                           "wxme-random.rkt"))
 
-(define test-xvfb-paths '("wxme.rkt"))
+(define test-xvfb-paths '("wxme.rkt" "pasteboard.rkt"))
