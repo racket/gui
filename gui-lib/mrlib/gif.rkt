@@ -2,7 +2,7 @@
 
 ;; A library for creating gifs out of bitmap%s
 
-(require racket/gui/base
+(require racket/draw
          racket/class
          racket/list
          net/gifwrite
