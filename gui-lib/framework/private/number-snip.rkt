@@ -10,7 +10,8 @@
            file/convertible
            simple-tree-text-markup/text)
   
-  (import mred^)
+  (import mred^
+          (only framework:editor^ get-standard-style-list))
   (export (rename framework:number-snip/int^
                   [-snip-class% snip-class%]))
   (init-depend mred^)
@@ -599,11 +600,12 @@
                             [(w3 h3 d3 a3) (get-text-extent/f dc clickable-portion font)])
                  (and (<= (+ w1 w2) sx (+ w1 w2 w3))
                       (<= 0 sy h3))))))
-      
+
       (super-new)
-      (inherit set-snipclass set-flags get-flags)
+      (inherit set-snipclass set-flags get-flags set-style)
       (set-flags (cons 'handles-events (get-flags)))
       (set-snipclass number-snipclass)
+      (set-style (send (get-standard-style-list) find-named-style "Standard"))
       (iterate 1))) ;; calc first digits
 
 (define remove-decimal-looking-number-snips-on-insertion-mixin
