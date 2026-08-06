@@ -8,7 +8,8 @@
            "../preferences.rkt"
            string-constants
            file/convertible
-           simple-tree-text-markup/text)
+           simple-tree-text-markup/text
+           (prefix-in : "number-snip-size.rkt"))
   
   (import mred^)
   (export (rename framework:number-snip/int^
@@ -38,18 +39,7 @@
             (make-repeating-decimal-snip number (or (eq? exact-prefix 'always)
                                                     (eq? exact-prefix 'when-necessary)))])])))
 
-  (define (make-pretty-print-size #:exact-prefix [exact-prefix 'never] #:inexact-prefix [inexact-prefix 'never]
-                                  #:fraction-view [fraction-view #f])
-    (lambda (number display? port)
-      (let ([fraction-view (or fraction-view (preferences:get 'framework:fraction-snip-style))])
-        (cond
-          [(or (inexact? number)
-               (integer? number)
-               (not (real? number)))
-           (string-length (number-markup->string number
-                                                 #:exact-prefix exact-prefix #:inexact-prefix inexact-prefix
-                                                 #:fraction-view fraction-view))]
-          [else 1]))))
+(define make-pretty-print-size :make-pretty-print-size)
     
   ;; make-repeating-decimal-snip : number boolean -> snip
   (define (make-repeating-decimal-snip number e-prefix?)
