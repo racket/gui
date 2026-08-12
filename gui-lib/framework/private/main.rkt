@@ -319,6 +319,8 @@
 (preferences:add-callback 'framework:any-control+alt-is-altgr (λ (p v) (any-control+alt-is-altgr v)))
 (any-control+alt-is-altgr (preferences:get 'framework:any-control+alt-is-altgr))
 
+;; this preference is needed for code that uses number-snip-size.rkt so it moved there
+#;
 (preferences:set-default 'framework:fraction-snip-style 
                          'mixed (λ (x) (memq x '(mixed improper decimal))))
 

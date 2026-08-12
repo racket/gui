@@ -2,6 +2,9 @@
 (require "../preferences.rkt"
          simple-tree-text-markup/text)
 
+(preferences:set-default 'framework:fraction-snip-style 
+                         'mixed (λ (x) (memq x '(mixed improper decimal))))
+
 (provide make-pretty-print-size)
 (define (make-pretty-print-size #:exact-prefix [exact-prefix 'never] #:inexact-prefix [inexact-prefix 'never]
                                 #:fraction-view [fraction-view #f])
