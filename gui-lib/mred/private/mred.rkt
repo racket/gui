@@ -7,6 +7,7 @@
            (rename racket/base r/b:#%app #%app)
            (only scheme/base) (only scheme/class) ; so that `make-gui-namespace' attaches them
            racket/class
+           racket/contract
            racket/draw racket/snip
            file/resource
            mzlib/etc
@@ -254,10 +255,8 @@
 	   get-page-setup-from-user
 	   can-get-page-setup-from-user?
 	   play-sound
-	   get-display-size
 	   get-display-left-top-inset
-	   get-display-count
-           get-display-backing-scale
+	   get-display-backing-scale
 	   get-color-from-user
 	   get-font-from-user
            append-editor-operation-menu-items
@@ -304,4 +303,18 @@
            dimension-integer?
            positive-dimension-integer?
            position-integer?
-           spacing-integer?))
+           spacing-integer?)
+
+  (provide/contract
+   [get-display-size (->i ()
+                          ([full-screen? any/c]
+                           #:monitor [monitor exact-nonnegative-integer?])
+                          (values [width (monitor)
+                                         (if (and (number? monitor) (= monitor 0))
+                                             exact-nonnegative-integer?
+                                             (or/c exact-nonnegative-integer? #f))]
+                                  [height (monitor)
+                                          (if (and (number? monitor) (= monitor 0))
+                                              exact-nonnegative-integer?
+                                              (or/c exact-nonnegative-integer? #f))]))]
+   [get-display-count (-> exact-positive-integer?)]))
