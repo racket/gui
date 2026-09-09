@@ -81,10 +81,12 @@
           (tellv cocoa setEditable: #:type _BOOL #f)
           (tellv cocoa setBordered: #:type _BOOL #f)
           (tellv cocoa setDrawsBackground: #:type _BOOL #f)
-          (tellv cocoa setStringValue: #:type _NSString (format "~a" hi))
+          (tellv cocoa setStringValue: #:type _NSString ;; Hope 'W' is wider than all digits
+                 (make-string (string-length (format "~a" hi)) #\W))
           (tellv cocoa sizeToFit)
           (let ([r1 (tell #:type _NSRect cocoa frame)])
-            (tellv cocoa setStringValue: #:type _NSString (format "~a" lo))
+            (tellv cocoa setStringValue: #:type _NSString
+                   (make-string (string-length (format "~a" lo)) #\W))
             (tellv cocoa sizeToFit)
             (let ([r2 (tell #:type _NSRect cocoa frame)])
               (tellv cocoa setStringValue: #:type _NSString (format "~a" val))
