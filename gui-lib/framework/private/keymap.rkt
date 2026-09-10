@@ -572,6 +572,8 @@
                     key)
                    func))])
       (add/map "editor-undo" 'undo "z")
+      (when (eq? (system-type) 'windows)
+        (add/map "editor-redo" 'redo "s:z"))
       (unless (eq? (system-type) 'macosx)
         (add/map "editor-redo" 'redo "y"))
       (add/map "editor-cut" 'cut "x")
