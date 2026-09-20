@@ -5,6 +5,7 @@
            (prefix wx: "kernel.rkt")
            "lock.rkt"
            "wx.rkt"
+           "panel-wob.rkt"
            "cycle.rkt"
            "check.rkt"
            "helper.rkt"
@@ -36,8 +37,11 @@
 	       [refresh-sample (lambda (b e) (let ([f (get-font)])
 					       (send ok-button enable f)
 					       (when f
-						 (let ([s (send (send edit get-style-list) find-named-style "Standard")])
-						   (send s set-delta (font->delta f))))))]
+						 (let ([s (send (send edit get-style-list) find-named-style "Standard")]
+						       [d (font->delta f)])
+						   (when (white-on-black-panel-scheme?)
+						     (send d set-delta-foreground "white"))
+						   (send s set-delta d)))))]
 	       [p (make-object horizontal-pane% f)]
 	       [face (make-object list-box% #f (wx:get-face-list) p refresh-sample)]
 	       [p2 (make-object vertical-pane% p)]
