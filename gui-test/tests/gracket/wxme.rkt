@@ -1646,6 +1646,71 @@
 (send km remove-grab-mouse-function)
 (expect (send km handle-mouse-event 'obj mevt/m) #f)
 
+;; A sequence continues only for events with the same target
+(let ()
+  (define km (new keymap%))
+  (define km2 (new keymap%))
+  (send km chain-to-keymap km2 #t)
+  (define hit #f)
+  (define (record name) (lambda (obj evt) (set! hit (list name obj))))
+  (send km add-function "seq" (record 'seq))
+  (send km map-function "d;o" "seq")
+  (send km2 add-function "chained-seq" (record 'chained-seq))
+  (send km2 map-function "c:x;t" "chained-seq")
+  (send km add-function "left" (record 'left))
+  (send km add-function "left2" (record 'left2))
+  (send km map-function "leftbutton" "left")
+  (send km map-function "leftbuttondouble" "left2")
+  (send km add-function "drag" (record 'drag))
+  (send km map-function "rightbuttonseq" "drag")
+
+  (define (key code #:control? [control? #f])
+    (define e (new key-event% [key-code code]))
+    (send e set-control-down control?)
+    e)
+
+  ;; key sequence
+  (expect (send km handle-key-event 'a (key #\d)) #t)
+  (expect (send km handle-key-event 'b (key #\o)) #f)
+  (expect hit #f)
+  (expect (send km handle-key-event 'a (key #\d)) #t)
+  (expect (send km handle-key-event 'a (key #\o)) #t)
+  (expect hit '(seq a))
+
+  ;; key sequence in a chained keymap
+  (set! hit #f)
+  (expect (send km handle-key-event 'a (key #\x #:control? #t)) #t)
+  (expect (send km handle-key-event 'b (key #\t)) #f)
+  (expect hit #f)
+  (expect (send km handle-key-event 'a (key #\x #:control? #t)) #t)
+  (expect (send km handle-key-event 'a (key #\t)) #t)
+  (expect hit '(chained-seq a))
+
+  ;; double click
+  (define (left-down time)
+    (new mouse-event% [event-type 'left-down] [left-down #t] [x 5] [y 5] [time-stamp time]))
+  (expect (send km handle-mouse-event 'a (left-down 1000)) #t)
+  (expect hit '(left a))
+  (expect (send km handle-mouse-event 'b (left-down 1010)) #t)
+  (expect hit '(left b))
+  (expect (send km handle-mouse-event 'b (left-down 1020)) #t)
+  (expect hit '(left2 b))
+
+  ;; drag
+  (set! hit #f)
+  (expect (send km handle-mouse-event 'a (new mouse-event% [event-type 'right-down] [right-down #t])) #t)
+  (expect hit '(drag a))
+  (set! hit #f)
+  (expect (send km handle-mouse-event 'b (new mouse-event% [event-type 'right-up])) #f)
+  (expect hit #f)
+
+  ;; the keymap does not retain the most recent target
+  (define target-box (make-weak-box (string-copy "target")))
+  (send km handle-key-event (weak-box-value target-box) (key #\z))
+  (collect-garbage)
+  (expect (weak-box-value target-box) #f)
+  (void/reference-sink km))
+
 ;; ----------------------------------------
 ;; editor snips, content
 

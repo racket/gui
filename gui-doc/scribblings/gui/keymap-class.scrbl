@@ -24,6 +24,14 @@ A handler procedure in a keymap is invoked with a @racket[key-event%]
  @racket[editor<%>] objects, the extra parameter is generally the
  @racket[editor<%>] object that received the keyboard or mouse event.
 
+A keymap continues a key sequence, a sequence of clicks that forms a
+ double or triple click, or a mouse drag only while successive events
+ have the same (in the sense of @racket[object=?] or @racket[eq?]) extra value; an event with a
+ different extra value starts a new sequence. Chained keymaps follow the
+ extra value of the keymap they are chained from, so editors that share a
+ keymap, directly or by chaining, do not continue each other's
+ sequences.
+
 
 @defconstructor[()]{
 
@@ -148,7 +156,8 @@ Attempts to handle a keyboard event, returning @racket[#t] if the event
 
 See also @method[keymap% call-function].
 
-}
+@history[#:changed "1.81" @elem{A key sequence continues only for
+                                events with the same @racket[in].}]}
 
 
 @defmethod[(handle-mouse-event [in any/c]
@@ -161,7 +170,8 @@ Attempts to handle a mouse event, returning @racket[#t] if the event
 
 See also @method[keymap% call-function].
 
-}
+@history[#:changed "1.81" @elem{A sequence of clicks or a drag continues
+                                only for events with the same @racket[in].}]}
 
 
 @defmethod[(map-function [keyname string?]

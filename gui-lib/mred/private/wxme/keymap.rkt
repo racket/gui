@@ -139,7 +139,8 @@
   chain-handle-mouse-event
   get-best-mouse-score
   cycle-check
-  chain-check-grab)
+  chain-check-grab
+  chain-check-target)
 
 (defclass keymap% object%
   
@@ -165,6 +166,13 @@
   (define click-count 0)
   (define last-code #f)
   (define last-button #f)
+
+  ;; A weak box holding the `obj` argument of the most recent event; a
+  ;; key sequence, a multi-click sequence, or a drag continues only for
+  ;; events that have the same target, since editors can share keymaps
+  ;; (directly or by chaining). The box is weak so that a shared keymap
+  ;; does not retain the last editor it saw.
+  (define last-obj-box (make-weak-box #f))
 
   (define double-interval (get-double-click-threshold))
 
@@ -460,6 +468,7 @@
     (set! grab-key-function #f))
 
   (def/public (handle-key-event [any? obj] [key-event% event])
+    (chain-check-target obj)
     (let ([code (send event get-key-code)])
       (if (or (eq? code 'shift)
               (eq? code 'rshift)
@@ -561,6 +570,24 @@
                             1
                             result)))))))))
 
+  ;; Called with an event's target before this keymap handles the
+  ;; event. If the target differs from the previous event's, drops the
+  ;; state of any key sequence, multi-click sequence, or drag, which
+  ;; belongs to the previous target. Does the same for chained keymaps,
+  ;; which may have seen the previous target through another keymap.
+  (define/public (chain-check-target obj)
+    ;; an emptied box produces the box itself, which is never a target
+    (define last-obj (weak-box-value last-obj-box last-obj-box))
+    (unless (or (eq? obj last-obj)
+                (and (object? obj) (object? last-obj) (object=? obj last-obj)))
+      (set! last-obj-box (make-weak-box obj))
+      (set! prefix #f)
+      (set! prefixed? #f)
+      (set! last-button #f)
+      (set! active-mouse-function #f))
+    (for ([c (in-list chain-to)])
+      (send c chain-check-target obj)))
+
   (define/public (chain-check-grab obj event)
     (or (and grab-key-function #t)
         (for/or ([c (in-list chain-to)])
@@ -585,6 +612,7 @@
               [(mouse-middle) 'mouse-middle-triple])]))
 
   (def/public (handle-mouse-event [any? obj][mouse-event% event])
+    (chain-check-target obj)
     (let ([score (get-best-mouse-score event)])
       (not (zero? (chain-handle-mouse-event obj event #f 0 score)))))
 
