@@ -86,6 +86,7 @@
 (define-gdk gdk_display_flush _fpointer)
 
 (define-gdk gdk_window_show (_fun _GdkWindow -> _void))
+(define-gdk gdk_window_destroy (_fun _GdkWindow -> _void))
 
 ;; Gtk2
 (define-gdk gdk_draw_pixbuf _fpointer
@@ -161,7 +162,7 @@
 (define (free-gc-window win)
   (cond
    [use-x11? (XDestroyWindow (car win) (cdr win))]
-   [else (g_object_unref win)]))
+   [else (gdk_window_destroy win)]))
 
 (define (make-draw win gc-bitmap w h)
   (cond
