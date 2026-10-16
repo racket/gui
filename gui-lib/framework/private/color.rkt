@@ -456,13 +456,18 @@ added get-regions
       (define ep (+ in-start-pos (sub1 new-token-end)))
       (define style-name (token-sym->style color-type))
       (define base-color (send (get-style-list) find-named-style style-name))
-      (define color (if (and (hash? attribs) (hash-ref attribs 'comment? #f))
+      (define comment-color? (and (hash? attribs) (hash-ref attribs 'comment? #f)))
+      (define color (if comment-color?
                         (color-style->comment-style base-color)
                         base-color))
       (cond
         [(do-spell-check? (attribs->type attribs))
-         (define misspelled-color
+         (define base-misspelled-color
            (send (get-style-list) find-named-style misspelled-text-color-style-name))
+         (define misspelled-color
+           (if comment-color?
+               (color-style->comment-style base-misspelled-color)
+               base-misspelled-color))
          (cond
            [misspelled-color
             (define spell-infos
