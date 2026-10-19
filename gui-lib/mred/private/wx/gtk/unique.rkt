@@ -42,7 +42,7 @@
 (define-unique unique_message_data_new (_fun -> _UniqueMessageData))
 (define-unique unique_message_data_free (_fun _UniqueMessageData -> _void))
 (define-unique unique_message_data_set (_fun _UniqueMessageData _pointer _gsize -> _void))
-(define-unique unique_message_data_get (_fun _UniqueMessageData (len : (_ptr o _gsize))
+(define-unique unique_message_data_get (_fun _UniqueMessageData (len : (_ptr o _gsize atomic-interior))
                                              -> (data : _bytes)
                                              -> (scheme_make_sized_byte_string
                                                  data
@@ -100,10 +100,10 @@
   #:make-fail make-not-available)
 (define-gdk g_application_register (_fun _GtkApplication _pointer _pointer -> _gboolean)
   #:make-fail make-not-available)
-(define-gdk g_application_run (_fun _GtkApplication _int (_vector i _string) -> _gboolean)
+(define-gdk g_application_run (_fun _GtkApplication _int (_vector i _string/utf-8/immobile interior) -> _gboolean)
   #:make-fail make-not-available)
 (define-gdk g_application_command_line_get_arguments
-  (_fun _GApplicationCommandLine (n : (_ptr o _int)) -> (p : _pointer) -> (values p n))
+  (_fun _GApplicationCommandLine (n : (_ptr o _int atomic-interior)) -> (p : _pointer) -> (values p n))
   #:make-fail make-not-available)
 (define-gdk g_strfreev (_fun _pointer -> _void)
   #:make-fail make-not-available)

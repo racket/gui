@@ -36,7 +36,8 @@
 				    [format _int]
 				    [data _pointer]
 				    [length _int]
-				    [display _GtkDisplay]))
+				    [display _GtkDisplay])
+  #:malloc-mode 'atomic-interior)
 				  
 (define _GtkSelectionData _GtkSelectionDataT-pointer)
 
@@ -59,9 +60,10 @@
 (define-gtk gtk_selection_data_get_data (_fun _GtkSelectionData -> _pointer)
   #:fail (lambda () GtkSelectionDataT-data))
 
-(define-cstruct _GtkTargetEntry ([target _pointer]
+(define-cstruct _GtkTargetEntry ([target _string/utf-8/immobile]
                                  [flags _uint]
-                                 [info _uint]))
+                                 [info _uint])
+  #:malloc-mode 'interior)
 
 (define (get-data cb sel-data info self-box)
   (send (ptr-ref self-box _scheme) provide-data info sel-data))
@@ -178,21 +180,14 @@
                                                             (list (car all-data) (car all-data))
                                                             (loop (cdr all-data) (cdr orig-types)))))))
                         (values orig-types types all-data))])
-        (let ([target-strings (malloc 'raw _byte (+ (length types)
-                                                    (apply + (map string-utf-8-length types))))]
-              [targets (malloc _GtkTargetEntry (length types))])
-          (for/fold ([offset 0]) ([str (in-list types)]
-                                  [i (in-naturals)])
+        (let ([targets (malloc _GtkTargetEntry (length types) 'interior)])
+          (for ([str (in-list types)]
+                [i (in-naturals)])
             (let ([t (ptr-add targets i _GtkTargetEntry)])
               (cpointer-push-tag! t 'GtkTargetEntry)
-              (set-GtkTargetEntry-target! t (ptr-add target-strings offset))
+              (set-GtkTargetEntry-target! t str)
               (set-GtkTargetEntry-flags! t 0)
-              (set-GtkTargetEntry-info! t i))
-            (let ([bstr (string->bytes/utf-8 str)])
-              (memcpy target-strings offset bstr 0 (bytes-length bstr))
-              (let ([offset (+ offset (bytes-length bstr))])
-                (ptr-set! (ptr-add target-strings offset) _byte 0)
-                (+ offset 1))))
+              (set-GtkTargetEntry-info! t i)))
           (set! client c)
           (set! client-data all-data)
           (set! client-types types)
@@ -208,7 +203,7 @@
                                           clear_owner
                                           this-box)))
 
-          (free target-strings)))))
+          (void/reference-sink targets)))))
 
   (define/public (replaced s-box)
     ;; In atomic mode

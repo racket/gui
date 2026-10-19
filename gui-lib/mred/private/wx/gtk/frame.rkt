@@ -48,7 +48,7 @@
 (define-gtk gtk_window_set_title (_fun _GtkWindow _string -> _void))
 (define-gtk gtk_fixed_new (_fun -> _GtkWidget))
 (define-gtk gtk_fixed_move (_fun _GtkWidget _GtkWidget _int _int -> _void))
-(define-gtk gtk_window_get_size (_fun _GtkWidget (w : (_ptr o _int)) (h : (_ptr o _int))
+(define-gtk gtk_window_get_size (_fun _GtkWidget (w : (_ptr o _int atomic-interior)) (h : (_ptr o _int atomic-interior))
                                       -> _void
                                       -> (values w h)))
 (define-gtk gtk_window_set_decorated (_fun _GtkWidget _gboolean -> _void))
@@ -59,7 +59,7 @@
 (define-gtk gtk_window_move (_fun _GtkWidget _int _int -> _void))
 (define-gtk gtk_widget_set_uposition (_fun _GtkWidget _int _int -> _void)
   #:fail (lambda () (lambda (w x y) (gtk_window_move w x y))))
-(define-gtk gtk_window_get_position (_fun _GtkWidget (x : (_ptr o _int)) (y : (_ptr o _int)) 
+(define-gtk gtk_window_get_position (_fun _GtkWidget (x : (_ptr o _int atomic-interior)) (y : (_ptr o _int atomic-interior)) 
                                           -> _void
                                           -> (values x y)))
 (define-gtk gtk_window_set_gravity (_fun _GtkWindow _int -> _void))
@@ -75,9 +75,9 @@
 (define-gdk gdk_screen_get_monitor_scale_factor (_fun _GdkScreen _int -> _int)
   #:fail (lambda () (lambda (s n) 1)))
 (define-gdk gdk_window_get_pointer (_fun _GdkWindow 
-                                         (x : (_ptr o _int))
-                                         (y : (_ptr o _int))
-                                         (mods : (_ptr o _uint))
+                                         (x : (_ptr o _int atomic-interior))
+                                         (y : (_ptr o _int atomic-interior))
+                                         (mods : (_ptr o _uint atomic-interior))
                                          -> _GdkWindow
                                          -> (values x y mods)))
 
@@ -94,7 +94,8 @@
                               [height_inc _int]
                               [min_aspect _double]
                               [max_aspect _double]
-                              [win_gravity _int]))
+                              [win_gravity _int])
+  #:malloc-mode 'atomic-interior)
 (define-gtk gtk_window_set_geometry_hints (_fun _GtkWindow _pointer _GdkGeometry-pointer _int -> _void))
 (define-gtk gtk_widget_get_allocated_width (_fun _GtkWidget -> _int)
   #:make-fail make-not-available)
@@ -147,7 +148,8 @@
                                       [window _GtkWindow]
                                       [send_event _int8]
                                       [changed_mask _int]
-                                      [new_window_state _int]))
+                                      [new_window_state _int])
+  #:malloc-mode 'atomic-interior)
 
 
 (define-signal-handler connect-window-state "window-state-event"

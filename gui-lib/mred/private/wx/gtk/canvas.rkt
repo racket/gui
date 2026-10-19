@@ -41,7 +41,7 @@
                                        _GtkWidget _string _double* (_pointer = #f) -> _void)
   #:c-id g_object_set)
 (define-gobj g_object_get_double (_fun #:varargs-after 2
-                                       _GtkWidget _string (r : (_ptr o _double)) (_pointer = #f)
+                                       _GtkWidget _string (r : (_ptr o _double atomic-interior)) (_pointer = #f)
 				       -> _void -> r)
   #:c-id g_object_get)
 
@@ -179,7 +179,8 @@
 
 ;; We rely some on the implementation of GtkComboBoxEntry to replace
 ;; the drawing routine.
-(define-cstruct _GList ([data _pointer]))
+(define-cstruct _GList ([data _pointer])
+  #:malloc-mode 'atomic-interior)
 (define-gdk gdk_window_get_children (_fun _pointer -> _GList-pointer/null))
 (define-gdk gdk_window_hide (_fun _pointer -> _void))
 (define (get-subwindow gtk)

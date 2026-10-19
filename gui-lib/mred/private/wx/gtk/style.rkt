@@ -13,12 +13,14 @@
 	      get-label-bg-color))
 
 (define-cstruct _GTypeInstance
-  ([class _pointer]))
+  ([class _pointer])
+  #:malloc-mode 'atomic-interior)
 
 (define-cstruct _GObject
   ([g_type_instance _GTypeInstance]
    [ref_count _uint]
-   [qdata _pointer]))
+   [qdata _pointer])
+  #:malloc-mode 'atomic-interior)
 
 (define-cstruct _GtkStyle
   ([obj _GObject]
@@ -66,7 +68,8 @@
    [white _GdkColor]
    [font_desc _pointer] ; PangoFontDescription *
    ; ...
-   ))
+   )
+  #:malloc-mode 'atomic-interior)
 
 (define-gtk gtk_widget_get_style (_fun  _GtkWidget -> _GtkStyle-pointer))
 (define-gtk gtk_rc_get_style (_fun  _GtkWidget -> _GtkStyle-pointer))
@@ -105,7 +108,7 @@
 (define _GtkSettings (_cpointer 'GtkSettings))
 (define-gtk gtk_settings_get_default (_fun -> _GtkSettings))
 (define-gobj g_object_get/string (_fun #:varargs-after 2
-                                       _GtkSettings _string (r : (_ptr o _pointer)) (_pointer = #f)
+                                       _GtkSettings _string (r : (_ptr o _pointer atomic-interior)) (_pointer = #f)
                                        -> _void
                                        -> r)
   #:c-id g_object_get)

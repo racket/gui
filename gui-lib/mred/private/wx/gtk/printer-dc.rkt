@@ -64,7 +64,7 @@
 (define-gtk gtk_print_operation_run (_fun _GtkPrintOperation
                                           _int
                                           (_or-null _GtkWindow)
-                                          (_ptr o _pointer)
+                                          (_ptr o _pointer atomic-interior)
                                           -> _int))
 
 (define-gtk gtk_print_operation_set_allow_async (_fun _GtkPrintOperation _gboolean -> _void))

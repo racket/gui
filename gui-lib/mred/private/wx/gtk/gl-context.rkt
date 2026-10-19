@@ -76,28 +76,28 @@
 (define-egl eglGetProcAddress
   (_fun _string -> _fpointer))
 (define eglGetPlatformDisplay-type
-  (_fun _EGLInt _pointer (_list i _EGLInt) -> _EGLDisplay))
+  (_fun _EGLInt _pointer (_list i _EGLInt atomic-interior) -> _EGLDisplay))
 (define-egl eglGetPlatformDisplay eglGetPlatformDisplay-type)
 (define-egl eglInitialize
-  (_fun _pointer (_ptr o _int) (_ptr o _int) -> _EGLBoolean))
+  (_fun _pointer (_ptr o _int atomic-interior) (_ptr o _int atomic-interior) -> _EGLBoolean))
 (define-egl eglChooseConfig
-  (_fun _EGLDisplay (_list i _EGLInt) (c : (_ptr o _EGLConfig)) (_int = 1) (n : (_ptr o _EGLInt))
+  (_fun _EGLDisplay (_list i _EGLInt atomic-interior) (c : (_ptr o _EGLConfig atomic-interior)) (_int = 1) (n : (_ptr o _EGLInt atomic-interior))
 	-> (r : _EGLBoolean)
 	-> (and r (= n 1) c)))
 (define eglCreatePlatformWindowSurface-type
-  (_fun _EGLDisplay _EGLConfig _pointer (_list i _int) -> _EGLSurface))
+  (_fun _EGLDisplay _EGLConfig _pointer (_list i _int atomic-interior) -> _EGLSurface))
 (define-egl eglCreatePlatformWindowSurface
   eglCreatePlatformWindowSurface-type)
 (define-egl eglBindAPI
   (_fun _EGLInt -> _EGLBoolean))
 (define-egl eglCreateContext
-  (_fun _EGLDisplay _EGLConfig _EGLContext (_list i _EGLInt) -> _EGLContext))
+  (_fun _EGLDisplay _EGLConfig _EGLContext (_list i _EGLInt atomic-interior) -> _EGLContext))
 (define-egl eglMakeCurrent
   (_fun _EGLDisplay _EGLSurface _EGLSurface _EGLContext -> _EGLBoolean))
 (define-egl eglSwapBuffers
   (_fun _EGLDisplay _EGLSurface -> _EGLBoolean))
 (define-egl eglCreatePbufferSurface
-  (_fun _EGLDisplay _EGLConfig (_list i _EGLInt) -> _EGLSurface))
+  (_fun _EGLDisplay _EGLConfig (_list i _EGLInt atomic-interior) -> _EGLSurface))
 (define-egl eglGetError
   (_fun -> _EGLInt))
 (define-egl eglDestroySurface
@@ -203,7 +203,7 @@
   (_fun _Display _int -> _void))
 
 (define-glx glXQueryVersion
-  (_fun _Display (major : (_ptr o _int)) (minor : (_ptr o _int))
+  (_fun _Display (major : (_ptr o _int atomic-interior)) (minor : (_ptr o _int atomic-interior))
         -> (ret : _bool)
         -> (values ret major minor)))
 
@@ -211,12 +211,12 @@
   (_fun _Display _int -> _string/utf-8))
 
 (define-glx glXChooseFBConfig
-  (_fun _Display _int (_list i _int) (len : (_ptr o _int))
+  (_fun _Display _int (_list i _int atomic-interior) (len : (_ptr o _int atomic-interior))
         -> (_cvector o _GLXFBConfig len))
   #:wrap (allocator (λ (v) (XFree (cvector-ptr v)))))
 
 (define-glx glXGetFBConfigAttrib
-  (_fun _Display _GLXFBConfig _int (out : (_ptr o _int))
+  (_fun _Display _GLXFBConfig _int (out : (_ptr o _int atomic-interior))
         -> (ret : _int)
         -> (values ret out)))
 
@@ -251,7 +251,7 @@
 (define lazy-glXCreateContextAttribsARB
   (delay
     (function-ptr (glXGetProcAddressARB "glXCreateContextAttribsARB")
-                  (_fun _Display _GLXFBConfig _GLXContext _bool (_list i _int)
+                  (_fun _Display _GLXFBConfig _GLXContext _bool (_list i _int atomic-interior)
                         -> _GLXContext))))
 
 (define (glXCreateContextAttribsARB . args)

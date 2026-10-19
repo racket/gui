@@ -23,8 +23,8 @@
 
 (define-gobj g_signal_parse_name (_fun _string
                                        _GType
-                                       (id : (_ptr o _uint))
-                                       (_ptr o _GQuark)
+                                       (id : (_ptr o _uint atomic-interior))
+                                       (_ptr o _GQuark atomic-interior)
                                        _gboolean
                                        -> (r : _gboolean)
                                        -> (and r id)))
@@ -51,7 +51,7 @@
                                  _uint
                                  _GQuark
                                  _pointer
-                                 (r : (_ptr o _gboolean))
+                                 (r : (_ptr o _gboolean atomic-interior))
                                  -> _void
                                  -> r))
 

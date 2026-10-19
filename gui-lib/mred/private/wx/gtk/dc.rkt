@@ -57,7 +57,8 @@
 				[ref_count _uint]
 				[qdata _pointer]
 				[type _int]
-				[depth _int]))
+				[depth _int])
+  #:malloc-mode 'atomic-interior)
 (define-gdk gdk_visual_get_system (_fun -> _GdkVisual-rec-pointer))
 
 (define x11-bitmap%

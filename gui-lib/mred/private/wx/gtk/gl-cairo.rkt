@@ -55,7 +55,7 @@
   #:default-make-fail make-not-available)
 
 (define-gl glGenTextures
-  (_fun _GLsizei (i : (_ptr o _GLuint)) -> _void -> i))
+  (_fun _GLsizei (i : (_ptr o _GLuint atomic-interior)) -> _void -> i))
 
 (define-gl glBindTexture
   (_fun _GLenum _GLuint -> _void))
@@ -73,7 +73,7 @@
   (_fun _GLenum _GLint -> _void))
 
 (define-gl glGenFramebuffers
-  (_fun _GLsizei (i : (_ptr o _GLuint)) -> _void -> i))
+  (_fun _GLsizei (i : (_ptr o _GLuint atomic-interior)) -> _void -> i))
 
 (define-gl glBindFramebuffer
   (_fun _GLenum _GLuint -> _void))
@@ -85,10 +85,10 @@
   (_fun _GLenum -> _GLenum))
 
 (define-gl glDeleteTextures
-  (_fun _GLsizei (_ptr i _GLuint) -> _void))
+  (_fun _GLsizei (_ptr i _GLuint atomic-interior) -> _void))
 
 (define-gl glDeleteFramebuffers
-  (_fun _GLsizei (_ptr i _GLuint) -> _void))
+  (_fun _GLsizei (_ptr i _GLuint atomic-interior) -> _void))
 
 (define-gl glReadPixels
   (_fun _GLint _GLint _GLsizei _GLsizei _GLenum _GLenum _pointer -> _void))

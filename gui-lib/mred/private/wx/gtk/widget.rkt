@@ -42,7 +42,7 @@
 (define-gtk gtk_widget_queue_draw (_fun _GtkWidget -> _void))
 (define-gtk gtk_widget_get_toplevel (_fun _GtkWidget -> _GtkWidget))
 (define-gtk gtk_widget_translate_coordinates (_fun _GtkWidget _GtkWidget _int _int
-						   (x : (_ptr o _int)) (y : (_ptr o _int))
+						   (x : (_ptr o _int atomic-interior)) (y : (_ptr o _int atomic-interior))
 						   -> _gboolean
 						   -> (values x y)))
 (define-gtk gtk_widget_get_realized (_fun _GtkWidget -> _gboolean)

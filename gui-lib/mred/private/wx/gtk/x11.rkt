@@ -56,7 +56,8 @@
    [green-mask _ulong]
    [blue-mask _ulong]
    [colormap-size _int]
-   [bits-per-rgb _int]))
+   [bits-per-rgb _int])
+  #:malloc-mode 'atomic-interior)
 
 ;; This should be `_ulong`, but we use pointers for various
 ;; reasons, including support for dealloctaors:

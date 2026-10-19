@@ -33,7 +33,8 @@
    [wmclass_name _string]
    [wmclass_class _string]
    [override_redirect _gboolean]
-   [type_hint _int]))
+   [type_hint _int])
+  #:malloc-mode 'atomic-interior)
 
 ;; Gtk3, only:
 (define-cstruct _GdkWindowAttr3
@@ -50,7 +51,8 @@
    [wmclass_name _string]
    [wmclass_class _string]
    [override_redirect _gboolean]
-   [type_hint _int]))
+   [type_hint _int])
+  #:malloc-mode 'atomic-interior)
 
 (define make-GdkWindowAttr
   (if gtk3?

@@ -16,10 +16,10 @@
         _uint ; hardware_keycode
         _int ; GdkModifierType state
         _int ; group
-        (keyval : (_ptr o _uint))
-        (effective_group : (_ptr o _int))
-        (level : (_ptr o _int))
-        (consumed_modifiers : (_ptr o _int))
+        (keyval : (_ptr o _uint atomic-interior))
+        (effective_group : (_ptr o _int atomic-interior))
+        (level : (_ptr o _int atomic-interior))
+        (consumed_modifiers : (_ptr o _int atomic-interior))
         -> (r : _gboolean)
         -> (and r keyval)))
                 
