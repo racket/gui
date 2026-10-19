@@ -87,11 +87,13 @@
 (define-gdk gdk_display_warp_pointer (_fun _GdkDisplay _GdkScreen _int _int -> _void))
 
 (define-cstruct _GtkRequisition ([width _int]
-                                 [height _int]))
+                                 [height _int])
+  #:malloc-mode 'atomic-interior)
 (define-cstruct _GtkAllocation ([x _int]
                                 [y _int]
                                 [width _int]
-                                [height _int]))
+                                [height _int])
+  #:malloc-mode 'atomic-interior)
 
 (define-gtk gtk_widget_size_request (_fun _GtkWidget _GtkRequisition-pointer -> _void))
 (define-gtk gtk_widget_size_allocate (_fun _GtkWidget _GtkAllocation-pointer -> _void))
@@ -132,7 +134,8 @@
                              [req _GtkRequisition]
                              [alloc _GtkAllocation]
                              [window _GdkWindow]
-                             [parent _GtkWidget]))
+                             [parent _GtkWidget])
+  #:malloc-mode 'atomic-interior)
 
 (define-gtk widget-window (_fun _GtkWidget -> _GdkWindow)
   #:c-id gtk_widget_get_window
@@ -146,7 +149,7 @@
 	   (lambda (gtk)
 	     (GtkWidgetT-parent (cast gtk _GtkWidget _GtkWidgetT-pointer)))))
 
-(define-gtk widget-allocation (_fun _GtkWidget (o : (_ptr o _GtkAllocation)) -> _void -> o)
+(define-gtk widget-allocation (_fun _GtkWidget (o : (_ptr o _GtkAllocation atomic-interior)) -> _void -> o)
   #:c-id gtk_widget_get_allocation
   #:fail (lambda ()
 	   (lambda (gtk)
@@ -179,8 +182,8 @@
 (define-gtk gtk_drag_dest_unset (_fun _GtkWidget -> _void))
 
 (define-gtk gdk_event_get_scroll_deltas (_fun _GdkEventScroll-pointer
-					      (dx : (_ptr o _double))
-					      (dy : (_ptr o _double))
+					      (dx : (_ptr o _double atomic-interior))
+					      (dy : (_ptr o _double atomic-interior))
 					      -> _void
 					      -> (values dx dy))
   #:make-fail make-not-available)

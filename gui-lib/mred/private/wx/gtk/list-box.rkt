@@ -21,7 +21,8 @@
 (define-cstruct _GtkTreeIter ([stamp _int]
                               [user_data _pointer]
                               [user_data2 _pointer]
-                              [user_data3 _pointer]))
+                              [user_data3 _pointer])
+  #:malloc-mode 'atomic-interior)
 
 (define _GtkListStore (_cpointer 'GtkListStore))
 (define _GtkCellRenderer (_cpointer 'GtkCellRenderer))
@@ -36,7 +37,7 @@
 (define-gtk gtk_scrolled_window_new (_fun _pointer _pointer -> _GtkWidget))
 (define-gtk gtk_scrolled_window_set_policy (_fun _GtkWidget _int _int -> _void))
 
-(define-gtk gtk_list_store_newv (_fun _int (_list i _long) -> _GtkListStore))
+(define-gtk gtk_list_store_newv (_fun _int (_list i _long atomic-interior) -> _GtkListStore))
 (define-gtk gtk_list_store_clear (_fun _GtkListStore -> _void))
 (define-gtk gtk_list_store_append (_fun _GtkListStore _GtkTreeIter-pointer _pointer -> _void))
 (define-gtk gtk_list_store_set (_fun #:varargs-after 2
@@ -83,7 +84,7 @@
 (define-gtk gtk_tree_path_free (_fun _pointer -> _void))
 (define-gtk gtk_tree_path_get_indices (_fun _pointer -> _pointer))
 
-(define-gtk gtk_tree_view_get_visible_range (_fun _GtkWidget [sp : (_ptr o _pointer)] [ep : (_ptr o _pointer)]
+(define-gtk gtk_tree_view_get_visible_range (_fun _GtkWidget [sp : (_ptr o _pointer atomic-interior)] [ep : (_ptr o _pointer atomic-interior)]
                                                   -> [ok? : _gboolean]
                                                   -> (values (if ok? sp #f) (if ok? ep #f))))
 

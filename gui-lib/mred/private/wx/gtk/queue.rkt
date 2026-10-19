@@ -38,7 +38,7 @@
 ;; disable asynchronous mode.
 (void (putenv "IBUS_ENABLE_SYNC_MODE" "y"))
 
-(define-gtk gtk_init_check (_fun (_ptr io _int) (_ptr io _intptr) -> _gboolean))
+(define-gtk gtk_init_check (_fun (_ptr io _int atomic-interior) (_ptr io _intptr atomic-interior) -> _gboolean))
 (define-gdk gdk_set_program_class (_fun _string -> _void))
 
 (define x11-display
@@ -132,7 +132,8 @@
 
 (define-cstruct _GPollFD ([fd _int]
                           [events _short]
-                          [revents _short]))
+                          [revents _short])
+  #:malloc-mode 'atomic-interior)
 
 (define-glib g_main_context_default (_fun -> _GMainContext))
 (define-glib g_main_context_query (_fun _GMainContext
@@ -153,7 +154,7 @@
 
 (define poll-fd-count 1)
 (define poll-fds (make-GPollFD 0 0 0))
-(define timeout (malloc _int))
+(define timeout (malloc _int 'atomic-interior))
 
 ;; These are OS-specific, but they tend to be the same across OSes:
 (define POLLIN #x1)
@@ -172,7 +173,7 @@
         (unsafe-poll-ctx-milliseconds-wakeup fds (+ (current-inexact-monotonic-milliseconds) to))))
     (if (n . > . poll-fd-count)
         (begin
-          (set! poll-fds (malloc _GPollFD n))
+          (set! poll-fds (malloc _GPollFD n 'atomic-interior))
           (set! poll-fd-count n)
           (install-wakeup fds))
 	(if (eq? 'windows (system-type))

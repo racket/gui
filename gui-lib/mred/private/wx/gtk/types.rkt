@@ -78,7 +78,8 @@
                                  [button _uint]
                                  [device (_or-null _GdkDevice)]
                                  [x_root _double]
-                                 [y_root _double]))
+                                 [y_root _double])
+  #:malloc-mode 'atomic-interior)
 
 
 (define-cstruct _GdkEventKey ([type _GdkEventType]
@@ -91,7 +92,8 @@
                               [string _pointer] ; do not use
                               [hardware_keycode _uint16]
                               [group _ubyte]
-                              [is_modifier _byte])) ; just 1 bit
+                              [is_modifier _byte]) ; just 1 bit
+  #:malloc-mode 'atomic-interior)
 
 (define-cstruct _GdkEventScroll ([type _GdkEventType]
                                  [window _GdkWindow]
@@ -103,7 +105,8 @@
                                  [direction _uint]
                                  [device _GdkDevice]
                                  [x_root _double]
-                                 [y_root _double]))
+                                 [y_root _double])
+  #:malloc-mode 'atomic-interior)
 
 (define-cstruct _GdkEventMotion ([type _GdkEventType]
                                  [window _GdkWindow]
@@ -116,7 +119,8 @@
                                  [is_hint _int16]
                                  [device _GdkDevice]
                                  [x_root _double]
-                                 [y_root _double]))
+                                 [y_root _double])
+  #:malloc-mode 'atomic-interior)
 
 (define-cstruct _GdkEventCrossing ([type _GdkEventType]
                                    [window _GdkWindow]
@@ -130,7 +134,8 @@
                                    [mode _int]
                                    [detail _int]
                                    [focus _gboolean]
-                                   [state _uint]))
+                                   [state _uint])
+  #:malloc-mode 'atomic-interior)
 
 (define-cstruct _GdkEventConfigure ([type _GdkEventType]
                                     [window _GdkWindow]
@@ -138,7 +143,8 @@
                                     [x _int]
                                     [y _int]
                                     [width _int]
-                                    [height _int]))
+                                    [height _int])
+  #:malloc-mode 'atomic-interior)
 
 (define-cstruct _GdkEventSelection ([type _GdkEventType]
                                     [window _GdkWindow]
@@ -147,26 +153,31 @@
                                     [target _GdkAtom]
                                     [property _GdkAtom]
                                     [time _uint32]
-                                    [requestor _pointer]))
+                                    [requestor _pointer])
+  #:malloc-mode 'atomic-interior)
 
 (define-cstruct _GdkRectangle ([x _int]
                                [y _int]
                                [width _int]
-                               [height _int]))
+                               [height _int])
+  #:malloc-mode 'atomic-interior)
 
 (define-cstruct _GdkEventExpose ([type _GdkEventType]
                                  [window _GdkWindow]
                                  [send_event _byte]
                                  [area _GdkRectangle]
                                  [region _pointer]
-                                 [count _int]))
+                                 [count _int])
+  #:malloc-mode 'atomic-interior)
 
 (define-cstruct _GdkEventFocus ([type _GdkEventType]
                                 [window _GdkWindow]
                                 [send_event _byte]
-                                [in _short]))
+                                [in _short])
+  #:malloc-mode 'atomic-interior)
 
 (define-cstruct _GdkColor ([pixel _uint32]
                            [red _uint16]
                            [green _uint16]
-                           [blue _uint16]))
+                           [blue _uint16])
+  #:malloc-mode 'atomic-interior)

@@ -135,7 +135,7 @@
   (g_signal_connect_data obj s proc user-data #f (if after? G_CONNECT_AFTER 0)))
 
 (define-gobj g_object_get (_fun _GtkWidget (_string = "window") 
-				[w : (_ptr o _GdkWindow)]
+				[w : (_ptr o _GdkWindow atomic-interior)]
 				(_pointer = #f) -> _void -> w))
 
 (define-gobj g_object_new (_fun _GType _pointer -> _GtkWidget))
@@ -146,7 +146,8 @@
 (define-cstruct _GtkObject ([type-instance _pointer]
                             [ref_count _uint]
                             [qdata _pointer]
-                            [flags _uint32]))
+                            [flags _uint32])
+  #:malloc-mode 'atomic-interior)
 (define (get-gtk-object-flags gtk)
   (GtkObject-flags (cast gtk _pointer _GtkObject-pointer)))
 (define (set-gtk-object-flags! gtk v)
@@ -178,7 +179,8 @@
 
 (define-cstruct _g-slist
   ([data _pointer]
-   [next (_or-null _g-slist-pointer)]))
+   [next (_or-null _g-slist-pointer)])
+  #:malloc-mode 'atomic-interior)
 
 (define-glib g_slist_free (_fun _g-slist-pointer -> _void))
 (define (make-byte-string s)
