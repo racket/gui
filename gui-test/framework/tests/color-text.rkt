@@ -319,3 +319,84 @@
   (check-equal? (send t get-matching-paren-string "} ") #f)
   (check-equal? (send t get-matching-paren-string "") #f)
   (check-equal? (send t get-matching-paren-string "abc") #f))
+
+;; a change with old tokens after it, using a backup
+(let ()
+  (define t (new color:text%))
+  (send t insert "aaabcaaabc")
+  (start-backing-up-colorer t)
+  (send t freeze-colorer)
+  (send t thaw-colorer)
+  (send t insert "a" 4 4)
+  (send t freeze-colorer)
+  (send t thaw-colorer)
+
+  (check-equal? (get-colors t)
+                '((symbol 0 1)
+                  (parenthesis 1 2)
+                  (symbol 2 3)
+                  (constant 3 4)
+                  (symbol 4 7)
+                  (parenthesis 7 8)
+                  (constant 8 9)
+                  (no-color 9 11))))
+
+;; Tokenizes a line as a "..." string when it has a closing quote and as a
+;; lone " error token otherwise, so each token's backup reaches back to the
+;; start of its line. Line-ending whitespace has no backup.
+(define (line-backup-lexer port offset mode)
+  (define-values (line col pos) (port-next-location port))
+  (define (token type rx)
+    (define s (bytes->string/utf-8 (car (regexp-match rx port))))
+    (values s type #f pos (+ pos (string-length s))
+            (if (regexp-match? #rx"\n" s) 0 col)
+            'line))
+  (cond
+    [(eof-object? (peek-char port)) (values "eof" 'eof #f #f #f 0 mode)]
+    [(regexp-match-peek #rx"^\"[^\"\n]*\"" port) (token 'string #rx"^\"[^\"\n]*\"")]
+    [(regexp-match-peek #rx"^\"" port) (token 'error #rx"^\"")]
+    [(regexp-match-peek #rx"^[ \n]" port) (token 'white-space #rx"^[ \n]+")]
+    [else (token 'symbol #rx"^[^ \n\"]+")]))
+
+(define (start-line-backup-colorer t)
+  (send t start-colorer symbol->string line-backup-lexer '()))
+
+;; a change inside a token with a backup
+(let ()
+  (define t (new color:text%))
+  (send t insert "x\naa bb cc\ndd\n")
+  (start-line-backup-colorer t)
+  (send t freeze-colorer)
+  (send t thaw-colorer)
+  (send t delete 6 7)
+  (send t freeze-colorer)
+  (send t thaw-colorer)
+
+  (check-equal? (get-colors t)
+                '((symbol 0 1)
+                  (white-space 1 2)
+                  (symbol 2 4)
+                  (white-space 4 5)
+                  (symbol 5 6)
+                  (white-space 6 7)
+                  (symbol 7 9)
+                  (white-space 9 10)
+                  (symbol 10 12)
+                  (white-space 12 13))))
+
+;; a change at the end of a token with a backup
+(let ()
+  (define t (new color:text%))
+  (send t insert "\" 1 2 3\nz\n")
+  (start-line-backup-colorer t)
+  (send t freeze-colorer)
+  (send t thaw-colorer)
+  (send t insert "\"" 7 7)
+  (send t freeze-colorer)
+  (send t thaw-colorer)
+
+  (check-equal? (get-colors t)
+                '((string 0 8)
+                  (white-space 8 9)
+                  (symbol 9 10)
+                  (white-space 10 11))))

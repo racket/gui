@@ -554,16 +554,19 @@ added get-regions
             (loop s)))))
     
     (define/private (split-backward ls valid-tree pos)
-      (let loop ([pos pos][valid-tree valid-tree][old-invalid-tree #f])
-        (let-values (((orig-token-start orig-token-end valid-tree invalid-tree orig-data)
-                      (send valid-tree split/data (- pos (lexer-state-start-pos ls)))))
-          (let ([backup-pos (- pos (data-backup-delta orig-data))]
-                [invalid-tree (or old-invalid-tree invalid-tree)])
-            (if (backup-pos . < . pos)
-                ;; back up more:
-                (loop pos valid-tree invalid-tree)
-                ;; that was far enough:
-                (values orig-token-start orig-token-end valid-tree invalid-tree orig-data))))))
+      (define rel (- pos (lexer-state-start-pos ls)))
+      (define ending-data
+        (and (positive? rel)
+             (not (send valid-tree is-empty?))
+             (begin (send valid-tree search! (sub1 rel))
+                    (and (= rel (send valid-tree get-root-end-position))
+                         (send valid-tree get-root-data)))))
+      (define-values (start end valid invalid data) (send valid-tree split/data rel))
+      (let loop ([start start] [valid valid] [earliest-data (or ending-data data)])
+        (if (positive? (data-backup-delta earliest-data))
+            (let-values ([(start _end valid _invalid earliest-data) (send valid split/data rel)])
+              (loop start valid earliest-data))
+            (values start end valid invalid data))))
     
     (define/private (do-insert/delete/ls ls edit-start-pos edit-end-pos change-length)
       (unless (lexer-state-up-to-date? ls)
