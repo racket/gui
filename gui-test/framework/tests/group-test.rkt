@@ -8,6 +8,13 @@
          (only-in framework/private/group
                   pay-attention-to-current-eventspace-has-standard-menus?))
 
+;; wait for the given frame to be activated
+(define (wait-for-active-frame name)
+  (wait-for/here
+   (λ ()
+     (define frame (get-top-level-focus-window))
+     (and frame (equal? name (send frame get-label))))))
+
 (define windows-menu-prefix 
   (let ([basics (list "Bring Frame to Front…" "Most Recent Window"
                       #f)])
@@ -69,10 +76,11 @@
        (λ ()
          (queue-callback
           (λ () (send (make-object frame:basic% "test1") show #t)))
-         (wait-for-frame "test1")
+         (wait-for-active-frame "test1")
          (queue-callback
-          (λ () (send (make-object frame:basic% "test2") show #t)))
-         (wait-for-frame "test2"))))
+          (λ () (send (make-object frame:basic% "test2") show #t))
+          #f) ; low priority
+         (wait-for-active-frame "test2"))))
      (check-equal?
       (let ([frames (send (group:get-the-frame-group) get-frames)])
         (for-each (lambda (x)
@@ -89,11 +97,12 @@
          (queue-callback
           (λ ()
             (send (make-object frame:basic% "test1") show #t)))
-         (wait-for-frame "test1")
+         (wait-for-active-frame "test1")
          (queue-callback
           (λ ()
-            (send (make-object frame:basic% "test2") show #t)))
-         (wait-for-frame "test2"))))
+            (send (make-object frame:basic% "test2") show #t))
+          #f) ; low priority
+         (wait-for-active-frame "test2"))))
      (send (test:get-active-top-level-window) close)
      (check-equal?
       (let ([frames (send (group:get-the-frame-group) get-frames)])
