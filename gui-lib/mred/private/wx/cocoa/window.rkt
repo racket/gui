@@ -741,7 +741,7 @@
     (define/public (get-margin-adjustments) (values 0 0 0 0))
 
     (define/public (get-frame)
-      (tellv cocoa layoutSubtreeIfNeeded)
+      (when (version-10.7-or-later?) (tellv cocoa layoutSubtreeIfNeeded))
       (define r (tell #:type _NSRect cocoa frame))
       (define-values (lm tm rm bm) (get-margin-adjustments))
       (cond
@@ -818,7 +818,7 @@
 
     (define/public (get-client-size w h)
       ;; May be called in Cocoa event-handling mode
-      (tellv (get-cocoa-content) layoutSubtreeIfNeeded)
+      (when (version-10.7-or-later?) (tellv (get-cocoa-content) layoutSubtreeIfNeeded))
       (let ([s (NSRect-size (tell #:type _NSRect (get-cocoa-content) bounds))])
         (set-box! w (->long (ceiling (NSSize-width s))))
         (set-box! h (->long (ceiling (NSSize-height s))))))
