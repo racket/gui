@@ -100,9 +100,13 @@
     (test:keystroke #\a)
     (wait-for/here
      (λ ()
-       (define f (test:get-active-top-level-window))
-       (and f
-            (string=? "a" (send (send f get-editor) get-text)))))
+       ;; read the text in the eventspace's thread; calling `get-text` while
+       ;; that thread edits the text can leave the text locked
+       (queue-callback/wait
+        (λ ()
+          (define f (test:get-active-top-level-window))
+          (and f
+               (string=? "a" (send (send f get-editor) get-text)))))))
     (queue-callback
      (λ ()
        (define f (test:get-active-top-level-window))
