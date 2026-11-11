@@ -370,11 +370,6 @@
                                     (build-buff-spec "||" 1 1)
                                     '(((#\|))))))
 
-(define (queue-callback/wait t)
-  (define c (make-channel))
-  (queue-callback (λ () (channel-put c (t))))
-  (channel-get c))
-
 (define (test-specs frame-name frame-class specs)
   (define f #f)
   (queue-callback/wait

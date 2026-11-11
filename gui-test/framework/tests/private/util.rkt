@@ -6,7 +6,7 @@
          (for-syntax racket/base))
 
 (provide wait-for-frame wait-for/here
-         with-private-prefs)
+         with-private-prefs queue-callback/wait)
 
 (define (wait-for/here test)
   (define timeout 10)
@@ -49,3 +49,8 @@
     ;; no interference between different concurrent tests
     (preferences:restore-defaults)
     (t)))
+
+(define (queue-callback/wait t)
+  (define c (make-channel))
+  (queue-callback (λ () (channel-put c (call-with-values t list))))
+  (apply values (channel-get c)))
