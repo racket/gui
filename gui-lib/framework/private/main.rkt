@@ -101,7 +101,7 @@
                                     l))
                              values)
 
-(preferences:set-default 'framework:paren-color-scheme 'basic-grey symbol?)
+(preferences:set-default 'framework:paren-color-scheme 'spring symbol?)
   
 (define cond/offset-defaults
   '(("case-lambda" 0)
