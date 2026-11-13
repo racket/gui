@@ -31,6 +31,21 @@
 
    (define the-first-frame #f)
 
+   ;; The window manager activates a newly shown frame some time after
+   ;; `show` returns, and activating a frame moves it to the front of the
+   ;; frame group, so these frames record their activations and the tests
+   ;; wait for them before looking at the group
+   (define activated (make-hash))
+   (define activation-frame%
+     (class frame:basic%
+       (inherit get-label)
+       (define/override (on-activate on?)
+         (super on-activate on?)
+         (when on? (hash-set! activated (get-label) #t)))
+       (super-new)))
+   (define (wait-for-activation label)
+     (wait-for/here (λ () (hash-ref activated label #f))))
+
    (yield
     (thread
      (λ ()
@@ -67,12 +82,13 @@
      (yield
       (thread
        (λ ()
+         (hash-clear! activated)
          (queue-callback
-          (λ () (send (make-object frame:basic% "test1") show #t)))
-         (wait-for-frame "test1")
+          (λ () (send (make-object activation-frame% "test1") show #t)))
+         (wait-for-activation "test1")
          (queue-callback
-          (λ () (send (make-object frame:basic% "test2") show #t)))
-         (wait-for-frame "test2"))))
+          (λ () (send (make-object activation-frame% "test2") show #t)))
+         (wait-for-activation "test2"))))
      (check-equal?
       (let ([frames (send (group:get-the-frame-group) get-frames)])
         (for-each (lambda (x)
@@ -86,14 +102,15 @@
      (yield
       (thread
        (λ ()
+         (hash-clear! activated)
          (queue-callback
           (λ ()
-            (send (make-object frame:basic% "test1") show #t)))
-         (wait-for-frame "test1")
+            (send (make-object activation-frame% "test1") show #t)))
+         (wait-for-activation "test1")
          (queue-callback
           (λ ()
-            (send (make-object frame:basic% "test2") show #t)))
-         (wait-for-frame "test2"))))
+            (send (make-object activation-frame% "test2") show #t)))
+         (wait-for-activation "test2"))))
      (send (test:get-active-top-level-window) close)
      (check-equal?
       (let ([frames (send (group:get-the-frame-group) get-frames)])
