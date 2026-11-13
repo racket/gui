@@ -733,7 +733,7 @@
         (if (and (eq? c-eventspace (get-eventspace))
                  (eq? (current-thread) (eventspace-handler-thread c-eventspace)))
             (t)
-            (parameterize ([current-eventspace c-eventspace])
+            (parameterize ([current-eventspace (get-eventspace)])
               ;; need high priority callbacks to ensure ordering wrt other callbacks
               (queue-callback t #t)))))
     
