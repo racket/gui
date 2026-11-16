@@ -48,6 +48,13 @@
     ;; look at the disk so together this should mean
     ;; no interference between different concurrent tests
     (preferences:restore-defaults)
+    ;; restoring the defaults can queue a low-priority callback that updates
+    ;; the standard style list (for the font size); let it run now, before
+    ;; tests create editors in other eventspaces that it would update from
+    ;; this thread
+    (let ([s (make-semaphore 0)])
+      (queue-callback (λ () (semaphore-post s)) #f)
+      (yield s))
     (t)))
 
 (define (queue-callback/wait t)
