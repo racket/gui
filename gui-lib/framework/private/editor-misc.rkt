@@ -436,10 +436,13 @@
   
 (define (update-standard-style cng-delta)
   (let* ([the-standard (send standard-style-list find-named-style "Standard")]
+         [old-delta (make-object style-delta%)]
          [the-delta (make-object style-delta%)])
+    (send the-standard get-delta old-delta)
     (send the-standard get-delta the-delta)
     (cng-delta the-delta)
-    (send the-standard set-delta the-delta)))
+    (unless (send the-delta equal? old-delta)
+      (send the-standard set-delta the-delta))))
   
 (define standard-style-list<%>
   (interface (editor<%>)
